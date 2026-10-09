@@ -920,7 +920,7 @@ function renderOnboarding(){
        '<div style="margin:0 0 26px">'+ladderSVG(3,0.5)+'</div>'+
        '<button class="btn block" data-a="start">Empezar mi programa</button>'+
        '<button class="btn ghost block" data-a="welcomeInfo" style="margin-top:10px">Ver cómo funciona el programa</button>'+
-       '<div class="tipbox"><b>Para no perder tu avance:</b> abre esta app en una pestaña aparte de Safari y no la cierres. Mejor aún, agrégala a tu pantalla de inicio (botón compartir de Safari → "Agregar a inicio").</div></div>'+
+       '<div class="tipbox"><b>Para no perder tu avance:</b> ábrela en Safari (no dentro de WhatsApp) y agrégala a tu pantalla de inicio (botón Compartir de Safari → "Agregar a pantalla de inicio"). Después ábrela siempre desde su ícono.</div></div>'+
        '<p class="foot">Cada kilo es un peldaño. Tus datos se guardan solo en este teléfono.<br>Dudas: '+esc(contactLine())+'</p>';
     return h;
   }
@@ -1806,7 +1806,7 @@ function renderHowTo(){
   h+='<h2 class="disp">Cómo usar tu app</h2><p class="muted" style="margin-bottom:14px">Son 5 pasos. Léelos una vez y listo.</p>';
   h+=stepBlock(1,'Ponle ícono a tu celular',null,
     standalone ? ['Ya la tienes como app. Ábrela siempre desde su ícono.']
-      : ['En iPhone abre esta página en Safari y toca Compartir, el cuadro con la flecha hacia arriba.','Elige "Agregar a pantalla de inicio" y toca Agregar.','En Android: menú de los tres puntos y "Instalar app" o "Agregar a pantalla principal".'],
+      : ['Si abriste el link desde WhatsApp, primero ábrelo en Safari: toca los tres puntos o el ícono de brújula de la esquina y elige "Abrir en Safari". Si no, el ícono no se guarda bien.','iPhone, ya en Safari: toca Compartir (el cuadro con la flecha hacia arriba, abajo en la pantalla). Si no lo ves, toca los tres puntos de la barra.','Baja en el menú, elige "Agregar a pantalla de inicio" y toca Agregar. Verás el ícono AG FITNESS.','Android: en Chrome toca los tres puntos y "Instalar app" o "Agregar a pantalla principal".'],
     'Desde hoy ábrela siempre desde ese ícono: así tu información se conserva mejor.',null,null);
   h+=stepBlock(2,'Contesta tu cuestionario',null,['Son 5 pantallas cortas: tus datos, tu meta, dónde entrenas y qué comes.','Con eso la app arma tu rutina, tu menú y tu curva de peso.'],null,null,null);
   h+=stepBlock(3,'Úsala cada día',null,['En Hoy marca agua, sueño y comida.','En Rutina sigue los pasos en orden y anota tu peso y repeticiones.','El botón "Hoy va" de la barra de abajo cambia de color según tu día: rojo, amarillo o verde.'],null,null,null);
