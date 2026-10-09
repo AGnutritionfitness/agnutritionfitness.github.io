@@ -16,8 +16,14 @@
 <title>AG Nutrition + Fitness: tu plan de peso, rutina y dieta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<script>
+/* v2026-10-09b: si algo falla al abrir, mostrarlo en pantalla en vez de dejarla en blanco */
+window.__agErr=function(m){try{var a=document.getElementById('app')||document.body;if(!a)return;if(a.getAttribute('data-ok'))return;a.innerHTML='<div style="padding:24px;color:#fff;font:16px/1.5 -apple-system,Helvetica,Arial,sans-serif"><b>No se pudo abrir la app.</b><br>Toca recargar. Si sigue igual, manda una captura de esta pantalla a AG.<br><br><span style="opacity:.7;font-size:13px;word-break:break-word">'+String(m).replace(/</g,'&lt;')+'</span></div>';}catch(e){}};
+window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
+window.addEventListener('unhandledrejection',function(e){});
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="config.js"></script>
 <style>
 /* La marca es negra en cualquier tema del visor: los tokens no cambian entre claro y oscuro. */
@@ -2064,7 +2070,7 @@ function setBearFavicon(){
     document.head.appendChild(link);
   }catch(e){}
 }
-render();
+try{ render(); var _a=document.getElementById('app'); if(_a) _a.setAttribute('data-ok','1'); }catch(e){ window.__agErr(e && e.message ? e.message : e); }
 if(!S.profile && !S.accessOk){
   idbGet().then(function(v){
     if(!v) return; var o=JSON.parse(v);
