@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-10g';
+window.AG_VERSION='2026-10-10h';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -2353,8 +2353,9 @@ function motivCheck(){
 }
 /* Nombre capturado al inicio, con la primera letra en mayúscula. Se antepone al mensaje: "Juanito, hoy no tiene que ser perfecto..." */
 function nameCap(){ var n=firstName(); return n ? n.charAt(0).toUpperCase()+n.slice(1) : ''; }
-function motivText(m){
+function motivText(m,k){
   var nm=nameCap(); if(!nm) return m;
+  if(!((k-1)%3===0 || k===90)) return m;                          // el nombre va cada tercer día (1, 4, 7...) y en el mensaje 90
   var keep=/^[A-ZÁÉÍÓÚÑ]{2}/.test(m) || /^\d/.test(m);          // siglas o números al inicio: no se pasa a minúscula
   return nm+', '+(keep ? m : m.charAt(0).toLowerCase()+m.slice(1));
 }
@@ -2365,7 +2366,7 @@ function motivCard(){
   return '<div class="card motiv'+(last?' motiv-last':'')+'"><div class="row sp" style="align-items:flex-start;gap:10px"><div style="min-width:0;flex:1">'+
     '<div class="small muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Mensaje '+k+' de '+MOTIV.length+(lap>1?' · vuelta '+lap:'')+'</div>'+
     '<div class="motivbar" aria-hidden="true"><i style="width:'+pct+'%"></i></div>'+
-    '<div style="font-size:17px;line-height:1.45;margin-top:10px">'+esc(motivText(MOTIV[k-1]))+'</div></div>'+
+    '<div style="font-size:17px;line-height:1.45;margin-top:10px">'+esc(motivText(MOTIV[k-1],k))+'</div></div>'+
     '<button type="button" class="chip" data-a="motivClose" aria-label="Cerrar mensaje" style="flex:none">✕</button></div></div>';
 }
 /* Temporizador de descanso (3 min). Vive fuera de #app para no reiniciarse al cambiar de pantalla. */
