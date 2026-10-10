@@ -40,7 +40,7 @@ window.AG_CONFIG = {
   appLink: "",
 
   // Playlist de Spotify de tu marca (opcional). Pega el link completo que empieza con https://
-  // Mientras esté vacío, la app muestra "Próximamente" en la sección de música.
+  // Mientras esté vacío, la lista de música muestra "AG Fitness · En construcción" al final.
   playlistUrl: "",
 
   // Tienda o catálogo (opcional). Link completo que empieza con https://
