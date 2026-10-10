@@ -63,6 +63,9 @@ h3{font-size:18px;font-weight:700}
 
 /* tarjetas */
 .motiv{border-left:3px solid var(--mustard)}
+.motivbar{height:4px;border-radius:2px;background:#262626;overflow:hidden}
+.motivbar i{display:block;height:100%;background:var(--mustard);border-radius:2px}
+.motiv-last{border:1px solid var(--mustard);border-left-width:3px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
 .card.flat{background:transparent}
 .row{display:flex;gap:10px;align-items:center}
@@ -1868,7 +1871,7 @@ function finishOnboarding(){
 
 var H = {
   howto:function(){ ui.howto=true; render(); window.scrollTo(0,0); },
-  motivClose:function(){ ui.motivMsg=null; render(); },
+  motivClose:function(){ ui.motivN=0; render(); },
   howtoDone:function(){ ui.howto=false; S.howtoSeen=true; persist(); render(); window.scrollTo(0,0); },
   saveDay:function(){
     S.lastSave=Date.now(); S.lastSaveDay=todayIso(); persist();
@@ -2081,26 +2084,25 @@ function setBearFavicon(){
     document.head.appendChild(link);
   }catch(e){}
 }
-/* Mensaje de motivación: una vez al día, la primera vez que abres la app ese día. */
-var MOTIV=["Hoy no tiene que ser perfecto. Tiene que contar.", "Un día más cumplido es un día más cerca de tu meta.", "Haz lo de hoy, aunque no tengas ganas. Mañana lo agradeces.", "No busques motivación. Empieza, y la motivación llega después.", "Tu meta se construye con lo que haces hoy, no con lo que piensas hacer.", "Cada paso cuenta, también los pequeños.", "Sé un poco mejor que ayer. Con eso alcanza.", "Constancia antes que intensidad. Aparece hoy.", "Lo que repites todos los días es lo que te cambia.", "Si hoy te cuesta, cumple lo mínimo. Cumplir también es avanzar.", "Tu yo de dentro de tres meses te lo va a agradecer.", "Un buen día no es perfecto, es el que cumples.", "Poco a poco también es avanzar. No te compares, compárate con ayer.", "Cuida lo que comes, muévete y descansa bien. Con eso basta por hoy.", "Hoy elige lo que quieres lograr, no lo que te queda más fácil.", "No tienes que hacerlo todo hoy. Solo lo de hoy.", "Las ganas van y vienen. Tu plan se queda.", "Cumplir contigo mismo es lo que más fuerza da.", "Un paso hoy vale más que un gran plan para mañana.", "Tu cuerpo hace lo que tu rutina le pide. Pídele bien.", "Si ayer fallaste, hoy es nuevo. Retoma sin culpa.", "Cada sesión terminada es un voto por la persona que quieres ser.", "Tómalo con calma y con constancia. Así se llega.", "Empieza con el primer paso del día y deja que el siguiente llegue solo.", "Mejorar es una decisión de hoy, repetida muchos días.", "Hoy, un poco de esfuerzo; mañana, más energía.", "No necesitas ser perfecto. Necesitas ser constante.", "Enfócate en el proceso. Los resultados ya vienen detrás.", "Tu meta sigue ahí. Hoy te acercas un poco más.", "Hazlo por ti. Nadie más lo va a entrenar por ti."];
-function motivPick(){
-  var d=Math.floor(Date.parse(todayIso()+'T00:00:00Z')/864e5);
-  return MOTIV[((d%MOTIV.length)+MOTIV.length)%MOTIV.length];
-}
+/* Mensajes diarios: 90 mensajes en orden (valorarte, agradecer, confiar). Uno por cada día distinto que abres la app. */
+var MOTIV=["Aquí empiezan tus 90 mensajes, uno por cada día que abras la app. El primero: tú importas, y no por lo que logres.", "Antes de cambiar nada, vale decirlo: ya eres alguien que merece cuidado.", "Cuidarte no es egoísmo. Es la base para poder cuidar todo lo demás.", "Hablarte con respeto también es parte del entrenamiento. Hoy, cuida cómo te hablas.", "No tienes que ganarte el derecho a cuidarte. Ya lo tienes.", "Tu valor no sube ni baja con el número de la báscula.", "Lo que sientes importa. Un día difícil no te hace menos.", "Hoy trátate como tratarías a alguien a quien quieres.", "Seguir un plan es una forma de decirte: me tomo en serio.", "Eres más que tu rutina, tu trabajo y tus resultados. Hoy, recuérdalo.", "Lo que has superado hasta aquí también cuenta como entrenamiento.", "Tu tiempo vale. Hoy una parte es para ti.", "Decir \"esto es importante para mí\" ya es un gran paso.", "No compares tu capítulo uno con el capítulo veinte de otra persona.", "Mereces sentirte bien en tu cuerpo, a tu ritmo.", "Tus límites también son parte de quien eres. Respétalos sin culpa.", "Cada vez que cumples contigo, tu confianza en ti crece un poco.", "Descansar también es cuidarte. No hace falta ganarlo.", "Hoy no necesitas demostrarle nada a nadie. Solo cumplir contigo.", "Cuando te equivocas sigues valiendo lo mismo. Corrige y sigue.", "Tu historia tiene partes difíciles. No las borres: te trajeron hasta aquí.", "Reconocer lo que haces bien no es presumir. Es ser justo contigo.", "Hoy, piensa en algo que te gusta de ti. Con eso basta.", "No eres un proyecto por arreglar. Eres alguien en crecimiento.", "Tu cuerpo ha estado contigo en todo. Hoy empiezas a devolverle el favor.", "Quien se valora elige mejor: lo que come, cómo descansa, con quién se rodea.", "Pon tu bienestar en la agenda como pondrías algo importante. Porque lo es.", "Se pueden tener metas altas y quererse tal como se es hoy. Van juntas.", "Ya cumples contigo más seguido de lo que crees. Se nota.", "Van 30 de 90, un tercio del camino. Ya hablamos de valorarte; ahora toca algo que aligera todo: agradecer.", "Empecemos por lo más cercano: tu cuerpo. Hoy, agradécele que te lleva y te aguanta.", "Tu corazón trabaja todo el día sin pedir nada. Hoy, un gracias silencioso.", "Agradece que hoy puedes moverte, aunque sea poquito. No siempre es así para todos.", "Agua, comida y un lugar donde dormir. Parece poco y es mucho.", "Piensa en alguien que te ha apoyado en este camino. Dale las gracias, aunque sea en silencio.", "La gratitud no niega lo difícil. Solo ilumina lo que sí está.", "Agradece el esfuerzo de ayer: hizo posible el de hoy.", "Busca tres cosas pequeñas que salieron bien hoy. Siempre hay.", "Agradecer el proceso hace que pese menos.", "Gracias, cuerpo, por cada repetición. Dile eso un día de estos.", "Cada mañana es otra oportunidad de elegir de nuevo.", "Agradece las ganas de mejorar. No todos las tienen encendidas.", "Cuando algo te cueste, agradece lo que te está enseñando.", "Da las gracias a alguien en voz alta hoy. A ti también te va a hacer bien.", "Mitad del camino: 45 de 90. Antes de seguir, mira atrás y agradece lo recorrido.", "Cada día que abres esta app es un día que decidiste cuidarte. Gracias a ti por aparecer.", "Agradece el cansancio bueno, el que llega después de dar lo mejor.", "Hay comida en tu mesa y opciones para elegir. Hoy elige con gratitud, no con culpa.", "Agradece a quien te hace reír. La buena compañía también alimenta.", "Mira cuánta paciencia has desarrollado sin darte cuenta.", "Tus errores de antes te enseñaron lo que hoy ya sabes hacer. Gracias a ellos también.", "Hoy el éxito es sencillo: estar presente. Y ya lo estás.", "Un buen rato de silencio o una buena tarde con alguien. Son tuyos. Agradécelos.", "Dale las gracias a tu constancia. Ha trabajado más de lo que se ve.", "Lo que hoy te parece normal hace unas semanas era una meta. Agradécelo.", "Gratitud no es conformarse. Es partir de lo que ya tienes para llegar a más.", "Agradece algo que cuesta poco y vale mucho: un abrazo, un buen café, un día sin prisa.", "Mira tus manos, tus piernas, tu respiración. Todo eso se está fortaleciendo contigo.", "Gracias por no rendirte las veces que quisiste. Eso también se entrena.", "Van 60 de 90, dos tercios. Ya te valoras y agradeces; ahora toca creer en lo que puedes lograr.", "La confianza no es no tener dudas. Es avanzar a pesar de ellas.", "Ya lograste cosas difíciles antes. Tienes el historial para probarlo.", "Cada sesión terminada es una prueba de que sí puedes.", "Lo que hoy parece grande se vuelve normal cuando lo repites.", "No necesitas ver toda la escalera. Solo el siguiente peldaño.", "Confía en el proceso aunque la báscula tarde en notarlo. El cuerpo avanza en silencio.", "Si dudaste de ti al empezar, mira dónde estás hoy y vuelve a decidir.", "Tus metas no son demasiado grandes. Piden más días, no más talento.", "La persona que quieres ser se parece cada vez más a la que hoy cumple su plan.", "Un tropiezo no borra el avance. Es parte de cómo se avanza.", "Ya sabes más de ti y de tu cuerpo que hace unos meses. Confía en tu criterio.", "Tu fuerza no está solo en los músculos. Está en volver a empezar cuando cuesta.", "Cree en ti aunque sea diez minutos hoy. Verás lo que hace con tu día.", "Ya no entrenas solo por una meta. Entrenas para ser alguien que cumple lo que se propone.", "Quedan 15 mensajes. No para terminar algo, sino para confirmar quién eres.", "Piensa en quien abrió esta app el primer día y en quien la abre hoy. Hay diferencia.", "No dependas de la motivación. Ya tienes algo mejor: un hábito.", "Lo que lograste hasta hoy prueba que lo que viene también es posible.", "Cree en lo que ya demostraste, no solo en lo que esperas.", "Quedan 10. Imagina cómo te vas a sentir al leer el último.", "Tu meta ya no se ve tan lejos. Está más cerca porque tú la acercaste.", "Con calma. Lo difícil ya lo hiciste: empezar y quedarte.", "Lo que sigue después del 90 no es un final. Es otro nivel que ya sabes cómo alcanzar.", "Hoy confía un poco más. Tu constancia habla por ti.", "Quedan 5. Todos los que has leído hasta aquí te trajeron a este punto.", "Eres alguien que cumple. Eso no te lo quita nadie.", "Valorarte, agradecer, confiar: ya sabes cómo se hace. Solo quedan unos pasos.", "Quedan dos mensajes. Pase lo que pase con la báscula, lo que construiste ya es tuyo.", "Mañana llega el último mensaje. Hoy solo cumple un día más.", "Llegaste. Mírate: ahí está la persona que valía la pena desde el primer día. Y esto apenas empieza."];
 function motivCheck(){
   try{
     if(!S.profile || !S.accessOk) return;
     var t=todayIso();
-    if(S.motivDay!==t){ S.motivDay=t; ui.motivMsg=motivPick(); persist(); }
+    if(S.motivDay2!==t){ S.motivDay2=t; S.motivN=(S.motivN||0)+1; ui.motivN=S.motivN; persist(); }
   }catch(e){}
 }
 function motivCard(){
-  if(!ui.motivMsg) return '';
-  return '<div class="card motiv"><div class="row sp" style="align-items:flex-start;gap:10px"><div><div class="small muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Para empezar tu día</div>'+
-    '<div style="font-size:17px;line-height:1.4">'+esc(ui.motivMsg)+'</div></div>'+
+  if(!ui.motivN) return '';
+  var n=ui.motivN, k=((n-1)%MOTIV.length)+1, lap=Math.floor((n-1)/MOTIV.length)+1, last=(k===MOTIV.length);
+  var pct=Math.round(k/MOTIV.length*100);
+  return '<div class="card motiv'+(last?' motiv-last':'')+'"><div class="row sp" style="align-items:flex-start;gap:10px"><div style="min-width:0;flex:1">'+
+    '<div class="small muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Mensaje '+k+' de '+MOTIV.length+(lap>1?' · vuelta '+lap:'')+'</div>'+
+    '<div class="motivbar" aria-hidden="true"><i style="width:'+pct+'%"></i></div>'+
+    '<div style="font-size:17px;line-height:1.45;margin-top:10px">'+esc(MOTIV[k-1])+'</div></div>'+
     '<button type="button" class="chip" data-a="motivClose" aria-label="Cerrar mensaje" style="flex:none">✕</button></div></div>';
 }
-
 /* Temporizador de descanso (3 min). Vive fuera de #app para no reiniciarse al cambiar de pantalla. */
 var TIMER_SECS=180, tmEnd=0, tmTimer=null, tmDone=false, tmCtx=null, tmEl=null;
 function tmBeep(){
@@ -2141,7 +2143,7 @@ function syncTimer(){
   var on=inMain && (ui.tab==='rutina' || tmEnd || tmDone);   // en reposo solo en Rutina; si corre o terminó, se ve en cualquier pestaña
   if(on) tmDraw(); else tmEl.className='agtimer';
 }
-document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivMsg; motivCheck(); if(ui.motivMsg!==before && !ui.howto && !ui.welcome) render(); } });
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome) render(); } });
 var _renderBase=render; render=function(){ _renderBase(); try{ syncTimer(); }catch(e){} };
 
 motivCheck();
