@@ -22,6 +22,16 @@
 window.__agErr=function(m){try{var a=document.getElementById('app')||document.body;if(!a)return;if(a.getAttribute('data-ok'))return;a.innerHTML='<div style="padding:24px;color:#fff;font:16px/1.5 -apple-system,Helvetica,Arial,sans-serif"><b>No se pudo abrir la app.</b><br>Toca recargar. Si sigue igual, manda una captura de esta pantalla a AG.<br><br><span style="opacity:.7;font-size:13px;word-break:break-word">'+String(m).replace(/</g,'&lt;')+'</span></div>';}catch(e){}};
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
+/* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
+window.AG_VERSION='2026-10-10c';
+try{
+  fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
+    t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
+    if(sessionStorage.getItem('ag_upd')===t) return;           // ya lo intentamos en esta sesión: no repetir
+    sessionStorage.setItem('ag_upd',t);
+    location.replace(location.pathname+'?v='+encodeURIComponent(t));
+  }).catch(function(){});
+}catch(e){}
 </script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="config.js"></script>
