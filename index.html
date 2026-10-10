@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-10c';
+window.AG_VERSION='2026-10-10d';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -72,6 +72,10 @@ h3{font-size:18px;font-weight:700}
 .mk2{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap}
 
 /* tarjetas */
+.phpair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.phpair figure{margin:0;position:relative}
+.phpair img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;display:block}
+.phpair figcaption{position:absolute;left:0;right:0;bottom:0;padding:5px;font-size:12px;font-weight:700;background:rgba(0,0,0,.7);color:#fff;border-radius:0 0 8px 8px}
 .phbadge{position:absolute;top:6px;right:6px;font-size:11px;font-weight:700;background:var(--mustard);color:#000;border-radius:999px;padding:2px 7px}
 .phbig{aspect-ratio:3/4}
 .phend{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:14px;width:100%;margin-top:12px;padding:14px;border:2px solid var(--mustard);border-radius:12px;background:linear-gradient(135deg,#1c1706,#0d0d0d);color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -2019,8 +2023,14 @@ function renderPhotos(){
   if(ui.photoView && PH[ui.photoView]){
     var k=ui.photoView, fin=(k==='final');
     h+='<h2 class="disp">'+(fin?'👑 ':'')+esc(phKeyLabel(k))+'</h2>';
-    h+='<div class="card'+(fin?' phfinal':'')+'" style="padding:10px;text-align:center">'+(fin?'<div class="phcrown" aria-hidden="true">👑</div>':'')+'<img src="'+PH[k]+'" alt="'+esc(phKeyLabel(k))+'" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:0 auto"></div>';
-    if(fin) h+='<p style="font-size:18px;line-height:1.4;margin-bottom:12px"><b>Mírate. Esto lo hiciste tú, semana tras semana.</b><br><span class="muted">Te esforzaste, no te rendiste y lo lograste. Te lo ganaste.</span></p>';
+    var first=fin?PH['w0_f']:null;
+    if(fin && first){
+      h+='<div class="card phfinal" style="padding:10px;text-align:center"><div class="phcrown" aria-hidden="true">👑</div>'+
+         '<div class="phpair"><figure><img src="'+first+'" alt="Semana 1"><figcaption>Semana 1</figcaption></figure><figure><img src="'+PH[k]+'" alt="Hoy"><figcaption>Hoy</figcaption></figure></div></div>';
+    } else {
+      h+='<div class="card'+(fin?' phfinal':'')+'" style="padding:10px;text-align:center">'+(fin?'<div class="phcrown" aria-hidden="true">👑</div>':'')+'<img src="'+PH[k]+'" alt="'+esc(phKeyLabel(k))+'" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:0 auto"></div>';
+    }
+    if(fin) h+='<p style="font-size:20px;line-height:1.4;margin-bottom:12px"><b>Ahí estás.</b><br><span class="muted" style="font-size:17px">'+(first?'Mira la de la semana 1 y mira esta. ':'')+'Eso no se compra, se trabaja.</span></p>';
     h+='<p class="small muted" style="margin-bottom:12px">Para tenerla también en tu galería, mantén presionada la foto y elige Guardar en Fotos. Si cambias de celular, esta foto no se pasa sola.</p>';
     h+='<button class="btn alt block" data-a="photoChange" data-v="'+k+'">Cambiar esta foto</button>';
     h+='<button class="btn ghost block" data-a="photoDel" data-v="'+k+'" style="margin-top:8px">Borrar esta foto</button>';
@@ -2030,7 +2040,7 @@ function renderPhotos(){
   /* 2) Foto 13: Mi nuevo yo */
   if(ui.photoWeek==='final'){
     h+='<h2 class="disp">👑 Mi nuevo yo</h2>';
-    h+='<div class="card phfinal" style="text-align:center"><p style="font-size:18px;line-height:1.45"><b>La foto 13 es especial.</b></p><p class="muted" style="margin:8px 0 14px">Cuando termines tus 12 semanas, tómate esta foto: la de quien se esforzó, no se rindió y lo logró. Con tu mejor sonrisa, y si quieres, con una corona.</p>'+
+    h+='<div class="card phfinal" style="text-align:center"><p style="font-size:20px;line-height:1.4"><b>La foto 13. La que querías sacarte desde el día 1.</b></p><p class="muted" style="margin:8px 0 14px">Ponte donde quieras, saca el pecho y sonríe. Te lo ganaste.</p>'+
        '<div class="phgrid" style="grid-template-columns:1fr;max-width:220px;margin:0 auto">'+phSlot('final','Mi nuevo yo','',true)+'</div></div>';
     h+=phPrivacy();
     h+='<button class="btn ghost block" data-a="photoWeekBack" style="margin-top:6px">Volver a mis fotos</button>';
