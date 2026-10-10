@@ -62,6 +62,14 @@ h3{font-size:18px;font-weight:700}
 .mk2{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap}
 
 /* tarjetas */
+.phbadge{position:absolute;top:6px;right:6px;font-size:11px;font-weight:700;background:var(--mustard);color:#000;border-radius:999px;padding:2px 7px}
+.phbig{aspect-ratio:3/4}
+.phend{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:14px;width:100%;margin-top:12px;padding:14px;border:2px solid var(--mustard);border-radius:12px;background:linear-gradient(135deg,#1c1706,#0d0d0d);color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.phend .phcrown{font-size:34px;flex:none}
+.phend img{width:54px;height:72px;object-fit:cover;border-radius:8px;flex:none}
+.phfinal{border:2px solid var(--mustard);background:linear-gradient(135deg,#1c1706,#0d0d0d);position:relative}
+.phcrown{font-size:36px;line-height:1}
+.phfinal .phcrown{margin-bottom:6px}
 .phgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .phtile{all:unset;box-sizing:border-box;position:relative;aspect-ratio:3/4;border:1px dashed var(--line);border-radius:10px;background:var(--surface);overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .phtile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -1907,8 +1915,9 @@ function renderShop(){
   h+='<p class="foot">Dudas: '+esc(contactLine())+'</p>';
   return h;
 }
-/* ===== Fotos de progreso: 12 fotos, una por semana. Se guardan SOLO en este teléfono (IndexedDB), reducidas a ~720 px. ===== */
-var PH={}, PH_N=12;
+/* ===== Fotos de progreso: 12 semanas × 3 ángulos (frente, perfil, cara) + la foto 13 "Mi nuevo yo".
+   Se guardan SOLO en este teléfono (IndexedDB), reducidas a ~720 px. Clave: 'w{semana}_{f|p|c}' y 'final'. ===== */
+var PH={}, PH_N=12, PH_ANG=[['f','Frente','Cuerpo completo, de frente'],['p','Perfil','Cuerpo completo, de lado'],['c','Cara','Solo tu cara']];
 function phOpen(){
   return new Promise(function(res,rej){
     try{
@@ -1921,16 +1930,30 @@ function phOpen(){
 }
 function phLoad(cb){
   phOpen().then(function(db){
-    var out={}, tx=db.transaction('p','readonly'), st=tx.objectStore('p'), cur=st.openCursor();
-    cur.onsuccess=function(){ var c=cur.result; if(c){ out[c.key]=c.value; c.continue(); } else { PH=out; if(cb) cb(); } };
+    var out={}, old=[], tx=db.transaction('p','readonly'), st=tx.objectStore('p'), cur=st.openCursor();
+    cur.onsuccess=function(){
+      var c=cur.result;
+      if(c){ var k=c.key; if(typeof k==='number'){ old.push([k,c.value]); out['w'+k+'_f']=c.value; } else out[k]=c.value; c.continue(); }
+      else {
+        PH=out; if(cb) cb();
+        old.forEach(function(o){ phPut('w'+o[0]+'_f',o[1]).then(function(){ return phDel(o[0]); }).catch(function(){}); });   // migra fotos de la versión anterior
+      }
+    };
     cur.onerror=function(){ if(cb) cb(); };
   },function(){ if(cb) cb(); });
 }
 function phPut(k,v){ return phOpen().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction('p','readwrite'); tx.objectStore('p').put(v,k); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
 function phDel(k){ return phOpen().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction('p','readwrite'); tx.objectStore('p').delete(k); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
 function phClearAll(){ PH={}; try{ phOpen().then(function(db){ db.transaction('p','readwrite').objectStore('p').clear(); }); }catch(e){} }
-function phCount(){ var n=0; for(var i=0;i<PH_N;i++){ if(PH[i]) n++; } return n; }
-function phLabel(i){ return 'Semana '+(i+1); }
+function phWeekN(w){ var n=0; PH_ANG.forEach(function(a){ if(PH['w'+w+'_'+a[0]]) n++; }); return n; }
+function phWeekImg(w){ for(var i=0;i<PH_ANG.length;i++){ var d=PH['w'+w+'_'+PH_ANG[i][0]]; if(d) return d; } return null; }
+function phCount(){ var n=0; for(var w=0;w<PH_N;w++){ if(phWeekN(w)>0) n++; } return n; }
+function phKeyLabel(k){
+  if(k==='final') return 'Mi nuevo yo';
+  var m=/^w(\d+)_(\w)$/.exec(k); if(!m) return 'Foto';
+  var a=PH_ANG.filter(function(x){ return x[0]===m[2]; })[0];
+  return 'Semana '+(Number(m[1])+1)+' · '+(a?a[1]:'');
+}
 function phShrink(file,cb){
   var fr=new FileReader();
   fr.onerror=function(){ cb(null); };
@@ -1956,7 +1979,7 @@ function phPick(k){
     phInput=document.createElement('input'); phInput.type='file'; phInput.accept='image/*'; phInput.style.display='none';
     phInput.addEventListener('change',function(){
       var f=phInput.files && phInput.files[0], k2=phTarget; phInput.value='';
-      if(!f || k2==null) return;
+      if(!f || !k2) return;
       phShrink(f,function(d){
         if(!d){ toast('No se pudo leer esa foto. Prueba con otra.'); return; }
         PH[k2]=d; ui.photoView=null; render();
@@ -1969,31 +1992,70 @@ function phPick(k){
 }
 function photosRow(){
   var n=phCount();
-  return '<div class="card flat plrow"><div class="row sp" style="align-items:center;gap:10px"><div><b>📷 Mis fotos de progreso</b><span class="small muted" style="display:block">'+n+' de '+PH_N+' · se guardan solo en tu teléfono</span></div>'+
+  return '<div class="card flat plrow"><div class="row sp" style="align-items:center;gap:10px"><div><b>📷 Mis fotos de progreso</b><span class="small muted" style="display:block">'+n+' de '+PH_N+' semanas · se guardan solo en tu teléfono</span></div>'+
     '<button type="button" class="btn alt sm" data-a="photosOpen">Abrir</button></div></div>';
+}
+function phPrivacy(){
+  return '<div class="card" style="border-left:3px solid var(--mustard)"><b>🔒 Tus fotos se quedan solo en tu teléfono.</b><p class="small muted" style="margin-top:6px">Nadie más las ve y no se suben a internet. Si cambias de celular o borras los datos de Safari, se pierden. Guarda una copia de las que quieras en tu galería.</p></div>';
+}
+function phSlot(k,title,sub,big){
+  var d=PH[k];
+  return '<button type="button" class="phtile'+(big?' phbig':'')+'" data-a="photoSlot" data-v="'+k+'" aria-label="'+esc(title)+(d?' (con foto)':' (agregar foto)')+'">'+
+    (d?'<img src="'+d+'" alt="">':'<span class="phplus">+</span>')+'<span class="phlbl">'+esc(title)+'</span></button>';
 }
 function renderPhotos(){
   var h='<div class="top">'+markHtml()+'</div>';
-  if(ui.photoView!=null && PH[ui.photoView]){
-    var k=ui.photoView;
-    h+='<h2 class="disp">'+phLabel(k)+'</h2>';
-    h+='<div class="card" style="padding:10px;text-align:center"><img src="'+PH[k]+'" alt="Foto de '+phLabel(k)+'" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:0 auto"></div>';
+  /* 1) Foto en grande */
+  if(ui.photoView && PH[ui.photoView]){
+    var k=ui.photoView, fin=(k==='final');
+    h+='<h2 class="disp">'+(fin?'👑 ':'')+esc(phKeyLabel(k))+'</h2>';
+    h+='<div class="card'+(fin?' phfinal':'')+'" style="padding:10px;text-align:center">'+(fin?'<div class="phcrown" aria-hidden="true">👑</div>':'')+'<img src="'+PH[k]+'" alt="'+esc(phKeyLabel(k))+'" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:0 auto"></div>';
+    if(fin) h+='<p style="font-size:18px;line-height:1.4;margin-bottom:12px"><b>Mírate. Esto lo hiciste tú, semana tras semana.</b><br><span class="muted">Te esforzaste, no te rendiste y lo lograste. Te lo ganaste.</span></p>';
     h+='<p class="small muted" style="margin-bottom:12px">Para tenerla también en tu galería, mantén presionada la foto y elige Guardar en Fotos. Si cambias de celular, esta foto no se pasa sola.</p>';
     h+='<button class="btn alt block" data-a="photoChange" data-v="'+k+'">Cambiar esta foto</button>';
     h+='<button class="btn ghost block" data-a="photoDel" data-v="'+k+'" style="margin-top:8px">Borrar esta foto</button>';
-    h+='<button class="btn ghost block" data-a="photoBack" style="margin-top:8px">Volver a mis fotos</button>';
+    h+='<button class="btn ghost block" data-a="photoBack" style="margin-top:8px">Volver</button>';
     return h;
   }
+  /* 2) Foto 13: Mi nuevo yo */
+  if(ui.photoWeek==='final'){
+    h+='<h2 class="disp">👑 Mi nuevo yo</h2>';
+    h+='<div class="card phfinal" style="text-align:center"><p style="font-size:18px;line-height:1.45"><b>La foto 13 es especial.</b></p><p class="muted" style="margin:8px 0 14px">Cuando termines tus 12 semanas, tómate esta foto: la de quien se esforzó, no se rindió y lo logró. Con tu mejor sonrisa, y si quieres, con una corona.</p>'+
+       '<div class="phgrid" style="grid-template-columns:1fr;max-width:220px;margin:0 auto">'+phSlot('final','Mi nuevo yo','',true)+'</div></div>';
+    h+=phPrivacy();
+    h+='<button class="btn ghost block" data-a="photoWeekBack" style="margin-top:6px">Volver a mis fotos</button>';
+    return h;
+  }
+  /* 3) Una semana: frente, perfil y cara */
+  if(ui.photoWeek!=null){
+    var w=ui.photoWeek;
+    h+='<h2 class="disp">Semana '+(w+1)+'</h2>';
+    h+='<p class="small muted" style="margin-bottom:10px">Tres fotos: de frente, de perfil y de cara. Mismo lugar, misma luz y misma ropa si puedes.</p>';
+    h+='<div class="phgrid">';
+    PH_ANG.forEach(function(a){ h+=phSlot('w'+w+'_'+a[0],a[1],a[2]); });
+    h+='</div>';
+    h+='<p class="small muted" style="margin:8px 0 12px">Frente: '+PH_ANG[0][2].toLowerCase()+'. Perfil: '+PH_ANG[1][2].toLowerCase()+'. Cara: '+PH_ANG[2][2].toLowerCase()+'.</p>';
+    h+=phPrivacy();
+    h+='<button class="btn ghost block" data-a="photoWeekBack" style="margin-top:6px">Volver a mis fotos</button>';
+    return h;
+  }
+  /* 4) Menú: 12 semanas + foto 13 */
   var now=S.profile?Math.min(PH_N-1,Math.max(0,curWeek()-1)):0;
   h+='<h2 class="disp">Mis fotos</h2>';
-  h+='<div class="card" style="border-left:3px solid var(--mustard)"><b>🔒 Tus fotos se quedan solo en tu teléfono.</b><p class="small muted" style="margin-top:6px">Nadie más las ve y no se suben a internet. Si cambias de celular o borras los datos de Safari, se pierden. Guarda una copia de las que quieras en tu galería.</p></div>';
-  h+='<p class="small muted" style="margin-bottom:10px">Una foto por semana, 12 en total. Mismo lugar, misma luz y misma ropa si puedes. Van '+phCount()+' de '+PH_N+'.</p>';
+  h+=phPrivacy();
+  h+='<p class="small muted" style="margin-bottom:10px">Una vez por semana: de frente, de perfil y de cara. Van '+phCount()+' de '+PH_N+' semanas.</p>';
   h+='<div class="phgrid">';
   for(var i=0;i<PH_N;i++){
-    h+='<button type="button" class="phtile'+(i===now?' now':'')+'" data-a="photoTile" data-v="'+i+'" aria-label="'+phLabel(i)+(PH[i]?' (con foto)':' (agregar foto)')+'">'+
-      (PH[i]?'<img src="'+PH[i]+'" alt="">':'<span class="phplus">+</span>')+'<span class="phlbl">'+phLabel(i)+(i===now&&!PH[i]?' · hoy':'')+'</span></button>';
+    var img=phWeekImg(i), n=phWeekN(i);
+    h+='<button type="button" class="phtile'+(i===now?' now':'')+'" data-a="photoTile" data-v="'+i+'" aria-label="Semana '+(i+1)+', '+n+' de 3 fotos">'+
+      (img?'<img src="'+img+'" alt="">':'<span class="phplus">+</span>')+
+      (n>0?'<span class="phbadge">'+n+'/3</span>':'')+
+      '<span class="phlbl">Semana '+(i+1)+(i===now&&!n?' · hoy':'')+'</span></button>';
   }
   h+='</div>';
+  h+='<button type="button" class="phend'+(PH.final?' done':'')+'" data-a="photoFinal">'+
+     (PH.final?'<img src="'+PH.final+'" alt="">':'<span class="phcrown" aria-hidden="true">👑</span>')+
+     '<span><b>Foto 13 · Mi nuevo yo</b><span class="small" style="display:block;opacity:.8">'+(PH.final?'Lo lograste. Toca para verla.':'Tu foto final, cuando termines las 12 semanas.')+'</span></span></button>';
   h+='<button class="btn ghost block" data-a="photosClose" style="margin-top:14px">Volver a mi app</button>';
   return h;
 }
@@ -2034,12 +2096,15 @@ function finishOnboarding(){
 
 var H = {
   howto:function(){ ui.howto=true; render(); window.scrollTo(0,0); },
-  photosOpen:function(){ ui.photos=true; ui.photoView=null; render(); window.scrollTo(0,0); phLoad(function(){ render(); }); },
-  photosClose:function(){ ui.photos=false; ui.photoView=null; render(); window.scrollTo(0,0); },
+  photosOpen:function(){ ui.photos=true; ui.photoView=null; ui.photoWeek=null; render(); window.scrollTo(0,0); phLoad(function(){ render(); }); },
+  photosClose:function(){ ui.photos=false; ui.photoView=null; ui.photoWeek=null; render(); window.scrollTo(0,0); },
+  photoTile:function(el){ ui.photoWeek=Number(el.dataset.v); ui.photoView=null; render(); window.scrollTo(0,0); },
+  photoFinal:function(){ ui.photoWeek='final'; ui.photoView=null; render(); window.scrollTo(0,0); },
+  photoSlot:function(el){ var k=el.dataset.v; if(PH[k]){ ui.photoView=k; render(); window.scrollTo(0,0); } else { phPick(k); } },
   photoBack:function(){ ui.photoView=null; render(); window.scrollTo(0,0); },
-  photoTile:function(el){ var k=Number(el.dataset.v); if(PH[k]){ ui.photoView=k; render(); window.scrollTo(0,0); } else { phPick(k); } },
-  photoChange:function(el){ phPick(Number(el.dataset.v)); },
-  photoDel:function(el){ var k=Number(el.dataset.v); if(!confirm('¿Borrar esta foto?')) return; delete PH[k]; ui.photoView=null; render(); phDel(k).catch(function(){}); },
+  photoWeekBack:function(){ ui.photoWeek=null; ui.photoView=null; render(); window.scrollTo(0,0); },
+  photoChange:function(el){ phPick(el.dataset.v); },
+  photoDel:function(el){ var k=el.dataset.v; if(!confirm('¿Borrar esta foto?')) return; delete PH[k]; ui.photoView=null; render(); phDel(k).catch(function(){}); },
   plToggle:function(){ ui.plOpen=!ui.plOpen; render(); },
   shopSoon:function(){ ui.shop=true; render(); window.scrollTo(0,0); },
   shopClose:function(){ ui.shop=false; render(); window.scrollTo(0,0); },
