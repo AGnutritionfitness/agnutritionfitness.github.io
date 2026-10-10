@@ -62,6 +62,12 @@ h3{font-size:18px;font-weight:700}
 .mk2{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap}
 
 /* tarjetas */
+.phgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.phtile{all:unset;box-sizing:border-box;position:relative;aspect-ratio:3/4;border:1px dashed var(--line);border-radius:10px;background:var(--surface);overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.phtile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.phtile.now{border:2px solid var(--mustard)}
+.phplus{font-size:34px;color:var(--mustard);line-height:1}
+.phlbl{position:absolute;left:0;right:0;bottom:0;padding:5px 4px;font-size:11px;font-weight:700;text-align:center;background:rgba(0,0,0,.72);color:#fff}
 .plhead{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .plarrow{flex:none;font-size:22px;color:var(--mustard);width:28px;text-align:center}
 .pllist{margin-top:10px;border-top:1px solid var(--line)}
@@ -1410,6 +1416,7 @@ function viewAvance(){
   else { for(var n=si.step;n>=Math.max(1,si.step-4);n--){ var lv=levelOf(n); h+='<p style="margin-bottom:8px"><b class="mus disp" style="font-size:24px">'+n+'</b> &nbsp;<b>'+esc(lv[0])+'</b><br><span class="small muted">'+esc(lv[1])+'</span></p>'; } }
   h+='</div>';
 
+  h+=photosRow();
   h+='<div class="card"><h3 style="margin-bottom:8px">Guía de bienvenida</h3><p class="small muted" style="margin-bottom:10px">Cómo funciona tu plan, cuánto dura y qué hacer cuando la vida aprieta.</p><button class="btn alt block" data-a="guide">Ver mi guía</button></div>';
   if(DL) h+='<div class="card"><h3 style="margin-bottom:6px">Resultados para tu coach</h3><p class="small muted" style="margin-bottom:10px">Un PDF con tu peso, tus cargas por ejercicio y conclusiones, listo para compartir.</p>'+
     '<div class="row"><button class="btn sm" style="flex:1" data-a="dlCoachWeek">Resultados de la semana</button><button class="btn alt sm" style="flex:1" data-a="dlCoachMonth">Resultados del mes</button></div></div>';
@@ -1900,6 +1907,96 @@ function renderShop(){
   h+='<p class="foot">Dudas: '+esc(contactLine())+'</p>';
   return h;
 }
+/* ===== Fotos de progreso: 12 fotos, una por semana. Se guardan SOLO en este teléfono (IndexedDB), reducidas a ~720 px. ===== */
+var PH={}, PH_N=12;
+function phOpen(){
+  return new Promise(function(res,rej){
+    try{
+      var q=indexedDB.open('ag_photos',1);
+      q.onupgradeneeded=function(){ q.result.createObjectStore('p'); };
+      q.onsuccess=function(){ res(q.result); };
+      q.onerror=function(){ rej(q.error); };
+    }catch(e){ rej(e); }
+  });
+}
+function phLoad(cb){
+  phOpen().then(function(db){
+    var out={}, tx=db.transaction('p','readonly'), st=tx.objectStore('p'), cur=st.openCursor();
+    cur.onsuccess=function(){ var c=cur.result; if(c){ out[c.key]=c.value; c.continue(); } else { PH=out; if(cb) cb(); } };
+    cur.onerror=function(){ if(cb) cb(); };
+  },function(){ if(cb) cb(); });
+}
+function phPut(k,v){ return phOpen().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction('p','readwrite'); tx.objectStore('p').put(v,k); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
+function phDel(k){ return phOpen().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction('p','readwrite'); tx.objectStore('p').delete(k); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
+function phClearAll(){ PH={}; try{ phOpen().then(function(db){ db.transaction('p','readwrite').objectStore('p').clear(); }); }catch(e){} }
+function phCount(){ var n=0; for(var i=0;i<PH_N;i++){ if(PH[i]) n++; } return n; }
+function phLabel(i){ return 'Semana '+(i+1); }
+function phShrink(file,cb){
+  var fr=new FileReader();
+  fr.onerror=function(){ cb(null); };
+  fr.onload=function(){
+    var im=new Image();
+    im.onerror=function(){ cb(null); };
+    im.onload=function(){
+      try{
+        var max=720, w=im.naturalWidth||im.width, h=im.naturalHeight||im.height, sc=Math.min(1,max/Math.max(w,h));
+        var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w*sc)); c.height=Math.max(1,Math.round(h*sc));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        cb(c.toDataURL('image/jpeg',0.72));
+      }catch(e){ cb(null); }
+    };
+    im.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+var phInput=null, phTarget=null;
+function phPick(k){
+  phTarget=k;
+  if(!phInput){
+    phInput=document.createElement('input'); phInput.type='file'; phInput.accept='image/*'; phInput.style.display='none';
+    phInput.addEventListener('change',function(){
+      var f=phInput.files && phInput.files[0], k2=phTarget; phInput.value='';
+      if(!f || k2==null) return;
+      phShrink(f,function(d){
+        if(!d){ toast('No se pudo leer esa foto. Prueba con otra.'); return; }
+        PH[k2]=d; ui.photoView=null; render();
+        phPut(k2,d).then(function(){ toast('Foto guardada en tu teléfono'); },function(){ toast('Se ve ahora, pero tu navegador no la pudo guardar. No cierres la app.'); });
+      });
+    });
+    document.body.appendChild(phInput);
+  }
+  phInput.click();
+}
+function photosRow(){
+  var n=phCount();
+  return '<div class="card flat plrow"><div class="row sp" style="align-items:center;gap:10px"><div><b>📷 Mis fotos de progreso</b><span class="small muted" style="display:block">'+n+' de '+PH_N+' · se guardan solo en tu teléfono</span></div>'+
+    '<button type="button" class="btn alt sm" data-a="photosOpen">Abrir</button></div></div>';
+}
+function renderPhotos(){
+  var h='<div class="top">'+markHtml()+'</div>';
+  if(ui.photoView!=null && PH[ui.photoView]){
+    var k=ui.photoView;
+    h+='<h2 class="disp">'+phLabel(k)+'</h2>';
+    h+='<div class="card" style="padding:10px;text-align:center"><img src="'+PH[k]+'" alt="Foto de '+phLabel(k)+'" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:0 auto"></div>';
+    h+='<p class="small muted" style="margin-bottom:12px">Para tenerla también en tu galería, mantén presionada la foto y elige Guardar en Fotos. Si cambias de celular, esta foto no se pasa sola.</p>';
+    h+='<button class="btn alt block" data-a="photoChange" data-v="'+k+'">Cambiar esta foto</button>';
+    h+='<button class="btn ghost block" data-a="photoDel" data-v="'+k+'" style="margin-top:8px">Borrar esta foto</button>';
+    h+='<button class="btn ghost block" data-a="photoBack" style="margin-top:8px">Volver a mis fotos</button>';
+    return h;
+  }
+  var now=S.profile?Math.min(PH_N-1,Math.max(0,curWeek()-1)):0;
+  h+='<h2 class="disp">Mis fotos</h2>';
+  h+='<div class="card" style="border-left:3px solid var(--mustard)"><b>🔒 Tus fotos se quedan solo en tu teléfono.</b><p class="small muted" style="margin-top:6px">Nadie más las ve y no se suben a internet. Si cambias de celular o borras los datos de Safari, se pierden. Guarda una copia de las que quieras en tu galería.</p></div>';
+  h+='<p class="small muted" style="margin-bottom:10px">Una foto por semana, 12 en total. Mismo lugar, misma luz y misma ropa si puedes. Van '+phCount()+' de '+PH_N+'.</p>';
+  h+='<div class="phgrid">';
+  for(var i=0;i<PH_N;i++){
+    h+='<button type="button" class="phtile'+(i===now?' now':'')+'" data-a="photoTile" data-v="'+i+'" aria-label="'+phLabel(i)+(PH[i]?' (con foto)':' (agregar foto)')+'">'+
+      (PH[i]?'<img src="'+PH[i]+'" alt="">':'<span class="phplus">+</span>')+'<span class="phlbl">'+phLabel(i)+(i===now&&!PH[i]?' · hoy':'')+'</span></button>';
+  }
+  h+='</div>';
+  h+='<button class="btn ghost block" data-a="photosClose" style="margin-top:14px">Volver a mi app</button>';
+  return h;
+}
 function renderAccessGate(){
   var h='<div class="top">'+markHtml()+'</div>';
   h+='<div class="hero"><h1 class="disp" style="font-size:40px">Tu código de acceso</h1>'+
@@ -1917,6 +2014,7 @@ function render(){
   if(!S.profile && !S.accessOk){ root.innerHTML = renderAccessGate(); return; }
   if(ui.howto){ root.innerHTML = renderHowTo(); return; }
   if(ui.shop){ root.innerHTML = renderShop(); return; }
+  if(ui.photos){ root.innerHTML = renderPhotos(); return; }
   if(!S.profile){ root.innerHTML = ui.welcome ? renderWelcome() : renderOnboarding(); }
   else { PLAN = computePlan(S.profile); root.innerHTML = ui.welcome ? renderWelcome() : renderMain(); }
 }
@@ -1936,6 +2034,12 @@ function finishOnboarding(){
 
 var H = {
   howto:function(){ ui.howto=true; render(); window.scrollTo(0,0); },
+  photosOpen:function(){ ui.photos=true; ui.photoView=null; render(); window.scrollTo(0,0); phLoad(function(){ render(); }); },
+  photosClose:function(){ ui.photos=false; ui.photoView=null; render(); window.scrollTo(0,0); },
+  photoBack:function(){ ui.photoView=null; render(); window.scrollTo(0,0); },
+  photoTile:function(el){ var k=Number(el.dataset.v); if(PH[k]){ ui.photoView=k; render(); window.scrollTo(0,0); } else { phPick(k); } },
+  photoChange:function(el){ phPick(Number(el.dataset.v)); },
+  photoDel:function(el){ var k=Number(el.dataset.v); if(!confirm('¿Borrar esta foto?')) return; delete PH[k]; ui.photoView=null; render(); phDel(k).catch(function(){}); },
   plToggle:function(){ ui.plOpen=!ui.plOpen; render(); },
   shopSoon:function(){ ui.shop=true; render(); window.scrollTo(0,0); },
   shopClose:function(){ ui.shop=false; render(); window.scrollTo(0,0); },
@@ -2050,7 +2154,7 @@ var H = {
   reset:function(){
     if(!ui.confirmReset){ ui.confirmReset=true; render(); return; }
     ui.confirmReset=false; S={profile:null,cycleIdx:0,done:{},weights:{},levelSeen:0};
-    try{ localStorage.removeItem(KEY); }catch(e){} mem=null;
+    try{ localStorage.removeItem(KEY); }catch(e){} mem=null; phClearAll();
     step=0; formErr=''; render(); window.scrollTo(0,0);
   },
   closeModal:function(){ var m=$('#modal'); if(m) m.remove(); },
@@ -2207,14 +2311,15 @@ function syncTimer(){
     tmEl=document.createElement('button'); tmEl.type='button'; tmEl.className='agtimer'; tmEl.setAttribute('aria-label','Temporizador de descanso de 3 minutos');
     tmEl.addEventListener('click',tmClick); document.body.appendChild(tmEl); tmDraw();
   }
-  var inMain=!!(S.profile && !ui.howto && !ui.welcome && !ui.shop);
+  var inMain=!!(S.profile && !ui.howto && !ui.welcome && !ui.shop && !ui.photos);
   var on=inMain && (ui.tab==='rutina' || tmEnd || tmDone);   // en reposo solo en Rutina; si corre o terminó, se ve en cualquier pestaña
   if(on) tmDraw(); else tmEl.className='agtimer';
 }
-document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome && !ui.shop) render(); } });
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome && !ui.shop && !ui.photos) render(); } });
 var _renderBase=render; render=function(){ _renderBase(); try{ syncTimer(); }catch(e){} };
 
 motivCheck();
+phLoad(function(){ if(S.profile && ui.tab==='avance' && !ui.photos && !ui.howto && !ui.welcome && !ui.shop) render(); });
 try{ render(); var _a=document.getElementById('app'); if(_a) _a.setAttribute('data-ok','1'); }catch(e){ window.__agErr(e && e.message ? e.message : e); }
 if(!S.profile && !S.accessOk){
   idbGet().then(function(v){
