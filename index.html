@@ -2106,7 +2106,7 @@ function cdText(){ var l=planLeft(); return l>0 ? 'Faltan '+l+(l===1?' día':' d
 function commitName(){ var n=S.profile ? firstName() : String(draft.name||'').trim().split(/\s+/)[0]; return n ? n.charAt(0).toUpperCase()+n.slice(1) : ''; }
 function commitBlock(start){
   var nm=commitName(), end=addDays(start,COMMIT_DAYS-1);
-  return '<div class="card commit"><p style="font-size:19px;line-height:1.5">Yo, <b>'+(nm?esc(nm):'_____')+'</b>, me comprometo a cuidarme durante <b>90 días</b>.</p>'+
+  return '<div class="card commit"><p style="font-size:18px;line-height:1.5">Yo, <b>'+(nm?esc(nm):'_____')+'</b>, decido empezar hoy.</p><p style="font-size:16px;line-height:1.55">Durante <b>90 días</b> voy a comer con intención, entrenar con constancia y cuidar lo que pienso y lo que me digo.</p><p style="font-size:16px;line-height:1.55">Sé que habrá días difíciles. En esos días no busco ser perfecto: busco volver al centro y dar el siguiente paso.</p><p style="font-size:16px;line-height:1.55">No lo hago solo por cómo me veré, sino por quién me estoy convirtiendo.</p>'+
     '<div class="commitdates"><div><span class="small muted">Empiezo</span><b>'+esc(longDate(start))+'</b></div><div><span class="small muted">Mi nuevo yo llega</span><b>'+esc(longDate(end))+'</b></div></div></div>'+
     '<p class="small muted" style="margin-bottom:6px">Firma con el dedo aquí:</p><div class="sigwrap"><canvas id="sigPad" width="640" height="260"></canvas></div>'+
     '<button type="button" class="btn ghost sm" data-a="sigClear" style="margin:8px 0 14px">Borrar firma</button>';
