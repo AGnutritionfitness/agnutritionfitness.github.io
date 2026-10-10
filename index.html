@@ -62,6 +62,7 @@ h3{font-size:18px;font-weight:700}
 .mk2{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap}
 
 /* tarjetas */
+.motiv{border-left:3px solid var(--mustard)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
 .card.flat{background:transparent}
 .row{display:flex;gap:10px;align-items:center}
@@ -199,6 +200,13 @@ label.chk input{width:22px;height:22px;margin-top:2px;accent-color:var(--red)}
 ul.gl{margin:0 0 10px;padding-left:20px}
 ul.gl li{margin-bottom:8px}
 .foot{font-size:13px;color:var(--muted);margin:22px 0 10px;text-align:center}
+.agtimer{position:fixed;right:14px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:30;display:none;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 16px;background:var(--mustard);color:#000;font:700 16px/1 'Barlow',system-ui,-apple-system,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.55);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.agtimer.show{display:flex}
+.agtimer small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.75}
+.agtimer.run{background:#1e1e1e;color:var(--mustard);border:2px solid var(--mustard)}
+.agtimer.run b{font-size:22px;font-variant-numeric:tabular-nums}
+.agtimer.done{background:#2e9d5b;color:#fff;animation:agpulse .6s ease-in-out infinite alternate}
+@keyframes agpulse{from{transform:scale(1)}to{transform:scale(1.08)}}
 </style>
 </head>
 <body>
@@ -1061,6 +1069,7 @@ function viewHoy(){
   var lv = si.step>=1 ? levelOf(si.step) : null;
   var fn=firstName();
   if(fn) h+='<h2 class="disp" style="font-size:30px;margin:4px 0 10px">Hola, '+esc(fn)+' 👋</h2>';
+  h+=motivCard();
   h+='<div class="card"><div class="row sp" style="align-items:flex-end"><div>';
   if(si.step>=1) h+='<div class="big disp">Peldaño '+si.step+'</div><div class="lv disp">'+esc(lv[0])+'</div>';
   else h+='<div class="lv disp">Al pie de la escalera</div><div class="muted">'+(si.unit==='kg'?'Baja tu primer kilo para subir el primer peldaño.':'Completa 8 sesiones para subir el primer peldaño.')+'</div>';
@@ -1816,7 +1825,7 @@ function renderHowTo(){
       : ['Si abriste el link desde WhatsApp, primero ábrelo en Safari: toca los tres puntos o el ícono de brújula de la esquina y elige "Abrir en Safari". Si no, el ícono no se guarda bien.','iPhone, ya en Safari: toca Compartir (el cuadro con la flecha hacia arriba, abajo en la pantalla). Si no lo ves, toca los tres puntos de la barra.','Baja en el menú, elige "Agregar a pantalla de inicio" y toca Agregar. Verás el ícono AG FITNESS.','Android: en Chrome toca los tres puntos y "Instalar app" o "Agregar a pantalla principal".'],
     'Desde hoy ábrela siempre desde ese ícono: así tu información se conserva mejor.',null,null);
   h+=stepBlock(2,'Contesta tu cuestionario',null,['Son 5 pantallas cortas: tus datos, tu meta, dónde entrenas y qué comes.','Con eso la app arma tu rutina, tu menú y tu curva de peso.'],null,null,null);
-  h+=stepBlock(3,'Úsala cada día',null,['En Hoy marca agua, sueño y comida.','En Rutina sigue los pasos en orden y anota tu peso y repeticiones.','Tu peso en cada ejercicio lo puedes anotar en kg o en libras: toca el texto "KG ⇄" arriba del campo Peso para cambiar a LB, y viceversa.','El botón "Hoy va" de la barra de abajo cambia de color según tu día: rojo, amarillo o verde.'],null,null,null);
+  h+=stepBlock(3,'Úsala cada día',null,['En Hoy marca agua, sueño y comida.','En Rutina sigue los pasos en orden y anota tu peso y repeticiones.','En Rutina verás un botón amarillo con ⏱ 3:00: tócalo para empezar tu descanso entre series. Suena y vibra cuando se acaba.','Tu peso en cada ejercicio lo puedes anotar en kg o en libras: toca el texto "KG ⇄" arriba del campo Peso para cambiar a LB, y viceversa.','El botón "Hoy va" de la barra de abajo cambia de color según tu día: rojo, amarillo o verde.'],null,null,null);
   h+=stepBlock(4,'Al terminar el día, toca Guardar mi día',null,['Está en la pestaña Hoy. Asegura todo lo que capturaste en tu celular.','Una vez por semana toca también "Guardar copia en archivo": es tu respaldo si cambias de celular o se borra el navegador.','Para recuperar: pestaña Avance, "Restaurar un respaldo".'],null,null,null);
   h+=stepBlock(5,'Activa tus recordatorios',null,['Te avisan 4 veces al día: agua y revisar tus pasos.','Toca el botón. Cuando se descargue el archivo, ábrelo y toca "Agregar todo" en tu calendario.'],null,null,
     DL?'<button class="btn alt block" data-a="dlics" style="margin-top:10px">Agregar recordatorios al calendario</button>':null);
@@ -1859,6 +1868,7 @@ function finishOnboarding(){
 
 var H = {
   howto:function(){ ui.howto=true; render(); window.scrollTo(0,0); },
+  motivClose:function(){ ui.motivMsg=null; render(); },
   howtoDone:function(){ ui.howto=false; S.howtoSeen=true; persist(); render(); window.scrollTo(0,0); },
   saveDay:function(){
     S.lastSave=Date.now(); S.lastSaveDay=todayIso(); persist();
@@ -2071,6 +2081,70 @@ function setBearFavicon(){
     document.head.appendChild(link);
   }catch(e){}
 }
+/* Mensaje de motivación: una vez al día, la primera vez que abres la app ese día. */
+var MOTIV=["Hoy no tiene que ser perfecto. Tiene que contar.", "Un día más cumplido es un día más cerca de tu meta.", "Haz lo de hoy, aunque no tengas ganas. Mañana lo agradeces.", "No busques motivación. Empieza, y la motivación llega después.", "Tu meta se construye con lo que haces hoy, no con lo que piensas hacer.", "Cada paso cuenta, también los pequeños.", "Sé un poco mejor que ayer. Con eso alcanza.", "Constancia antes que intensidad. Aparece hoy.", "Lo que repites todos los días es lo que te cambia.", "Si hoy te cuesta, cumple lo mínimo. Cumplir también es avanzar.", "Tu yo de dentro de tres meses te lo va a agradecer.", "Un buen día no es perfecto, es el que cumples.", "Poco a poco también es avanzar. No te compares, compárate con ayer.", "Cuida lo que comes, muévete y descansa bien. Con eso basta por hoy.", "Hoy elige lo que quieres lograr, no lo que te queda más fácil.", "No tienes que hacerlo todo hoy. Solo lo de hoy.", "Las ganas van y vienen. Tu plan se queda.", "Cumplir contigo mismo es lo que más fuerza da.", "Un paso hoy vale más que un gran plan para mañana.", "Tu cuerpo hace lo que tu rutina le pide. Pídele bien.", "Si ayer fallaste, hoy es nuevo. Retoma sin culpa.", "Cada sesión terminada es un voto por la persona que quieres ser.", "Tómalo con calma y con constancia. Así se llega.", "Empieza con el primer paso del día y deja que el siguiente llegue solo.", "Mejorar es una decisión de hoy, repetida muchos días.", "Hoy, un poco de esfuerzo; mañana, más energía.", "No necesitas ser perfecto. Necesitas ser constante.", "Enfócate en el proceso. Los resultados ya vienen detrás.", "Tu meta sigue ahí. Hoy te acercas un poco más.", "Hazlo por ti. Nadie más lo va a entrenar por ti."];
+function motivPick(){
+  var d=Math.floor(Date.parse(todayIso()+'T00:00:00Z')/864e5);
+  return MOTIV[((d%MOTIV.length)+MOTIV.length)%MOTIV.length];
+}
+function motivCheck(){
+  try{
+    if(!S.profile || !S.accessOk) return;
+    var t=todayIso();
+    if(S.motivDay!==t){ S.motivDay=t; ui.motivMsg=motivPick(); persist(); }
+  }catch(e){}
+}
+function motivCard(){
+  if(!ui.motivMsg) return '';
+  return '<div class="card motiv"><div class="row sp" style="align-items:flex-start;gap:10px"><div><div class="small muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Para empezar tu día</div>'+
+    '<div style="font-size:17px;line-height:1.4">'+esc(ui.motivMsg)+'</div></div>'+
+    '<button type="button" class="chip" data-a="motivClose" aria-label="Cerrar mensaje" style="flex:none">✕</button></div></div>';
+}
+
+/* Temporizador de descanso (3 min). Vive fuera de #app para no reiniciarse al cambiar de pantalla. */
+var TIMER_SECS=180, tmEnd=0, tmTimer=null, tmDone=false, tmCtx=null, tmEl=null;
+function tmBeep(){
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    if(!tmCtx) tmCtx=new AC(); if(tmCtx.state==='suspended') tmCtx.resume();
+    for(var i=0;i<3;i++){ (function(i){
+      var o=tmCtx.createOscillator(), g=tmCtx.createGain(), t=tmCtx.currentTime+i*0.45;
+      o.type='sine'; o.frequency.value=880; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.5,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
+      o.connect(g); g.connect(tmCtx.destination); o.start(t); o.stop(t+0.4); })(i); }
+  }catch(e){}
+  try{ if(navigator.vibrate) navigator.vibrate([300,150,300,150,300]); }catch(e){}
+}
+function tmFmt(sec){ var m=Math.floor(sec/60), r=sec%60; return m+':'+(r<10?'0':'')+r; }
+function tmDraw(){
+  if(!tmEl) return;
+  if(tmDone){ tmEl.className='agtimer show done'; tmEl.innerHTML='<b>¡Listo!</b><small>toca</small>'; return; }
+  if(tmEnd){ var left=Math.max(0,Math.ceil((tmEnd-Date.now())/1000)); tmEl.className='agtimer show run'; tmEl.innerHTML='<b>'+tmFmt(left)+'</b><small>parar</small>'; return; }
+  tmEl.className='agtimer show'; tmEl.innerHTML='<span aria-hidden="true">⏱</span><b>3:00</b><small>descanso</small>';
+}
+function tmTick(){
+  if(!tmEnd) return;
+  if(Date.now()>=tmEnd){ tmEnd=0; tmDone=true; clearInterval(tmTimer); tmTimer=null; tmBeep(); }
+  tmDraw();
+}
+function tmClick(){
+  if(tmDone){ tmDone=false; tmDraw(); return; }
+  if(tmEnd){ tmEnd=0; clearInterval(tmTimer); tmTimer=null; tmDraw(); return; }
+  try{ var AC=window.AudioContext||window.webkitAudioContext; if(AC){ if(!tmCtx) tmCtx=new AC(); if(tmCtx.state==='suspended') tmCtx.resume(); } }catch(e){}
+  tmEnd=Date.now()+TIMER_SECS*1000; tmTimer=setInterval(tmTick,250); tmDraw();
+}
+function syncTimer(){
+  if(!tmEl){
+    tmEl=document.createElement('button'); tmEl.type='button'; tmEl.className='agtimer'; tmEl.setAttribute('aria-label','Temporizador de descanso de 3 minutos');
+    tmEl.addEventListener('click',tmClick); document.body.appendChild(tmEl); tmDraw();
+  }
+  var inMain=!!(S.profile && !ui.howto && !ui.welcome);
+  var on=inMain && (ui.tab==='rutina' || tmEnd || tmDone);   // en reposo solo en Rutina; si corre o terminó, se ve en cualquier pestaña
+  if(on) tmDraw(); else tmEl.className='agtimer';
+}
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivMsg; motivCheck(); if(ui.motivMsg!==before && !ui.howto && !ui.welcome) render(); } });
+var _renderBase=render; render=function(){ _renderBase(); try{ syncTimer(); }catch(e){} };
+
+motivCheck();
 try{ render(); var _a=document.getElementById('app'); if(_a) _a.setAttribute('data-ok','1'); }catch(e){ window.__agErr(e && e.message ? e.message : e); }
 if(!S.profile && !S.accessOk){
   idbGet().then(function(v){
