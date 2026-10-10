@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-10e';
+window.AG_VERSION='2026-10-10f';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -1996,7 +1996,7 @@ function phPick(k){
       if(!f || !k2) return;
       phShrink(f,function(d){
         if(!d){ toast('No se pudo leer esa foto. Prueba con otra.'); return; }
-        PH[k2]=d; ui.photoView=null; render();
+        PH[k2]=d; ui.photoView=(k2==='final')?'final':null; render(); window.scrollTo(0,0);
         phPut(k2,d).then(function(){ toast('Foto guardada en tu teléfono'); },function(){ toast('Se ve ahora, pero tu navegador no la pudo guardar. No cierres la app.'); });
       });
     });
@@ -2120,9 +2120,9 @@ var H = {
   photosOpen:function(){ ui.photos=true; ui.photoView=null; ui.photoWeek=null; render(); window.scrollTo(0,0); phLoad(function(){ render(); }); },
   photosClose:function(){ ui.photos=false; ui.photoView=null; ui.photoWeek=null; render(); window.scrollTo(0,0); },
   photoTile:function(el){ ui.photoWeek=Number(el.dataset.v); ui.photoView=null; render(); window.scrollTo(0,0); },
-  photoFinal:function(){ ui.photoWeek='final'; ui.photoView=null; render(); window.scrollTo(0,0); },
+  photoFinal:function(){ ui.photoWeek='final'; ui.photoView=PH.final?'final':null; render(); window.scrollTo(0,0); },
   photoSlot:function(el){ var k=el.dataset.v; if(PH[k]){ ui.photoView=k; render(); window.scrollTo(0,0); } else { phPick(k); } },
-  photoBack:function(){ ui.photoView=null; render(); window.scrollTo(0,0); },
+  photoBack:function(){ if(ui.photoView==='final') ui.photoWeek=null; ui.photoView=null; render(); window.scrollTo(0,0); },
   photoWeekBack:function(){ ui.photoWeek=null; ui.photoView=null; render(); window.scrollTo(0,0); },
   photoChange:function(el){ phPick(el.dataset.v); },
   photoDel:function(el){ var k=el.dataset.v; if(!confirm('¿Borrar esta foto?')) return; delete PH[k]; ui.photoView=null; render(); phDel(k).catch(function(){}); },
