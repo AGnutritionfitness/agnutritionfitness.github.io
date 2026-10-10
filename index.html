@@ -1880,6 +1880,25 @@ function renderHowTo(){
   h+='<p class="foot">Dudas: '+esc(contactLine())+'</p>';
   return h;
 }
+/* Pantalla Tienda: tres categorías en "Próximamente". El botón abre WhatsApp con el mensaje ya escrito para que AG sepa quién quiere que le avisen. */
+function renderShop(){
+  var items=[
+    ['Rutinas especializadas','Planes enfocados en un objetivo concreto, armados por '+CONTACT_NAME+'.','rutinas especializadas'],
+    ['Proteínas y suplementos','Una selección recomendada por '+CONTACT_NAME+' para complementar tu plan.','proteínas y suplementos'],
+    ['Ropa deportiva','Para entrenar cómodo y con el estilo de '+BRAND_SHORT+' Fitness.','ropa deportiva']
+  ];
+  var h='<div class="top">'+markHtml()+'</div>';
+  h+='<h2 class="disp">Tienda '+esc(BRAND_SHORT)+'</h2><p class="muted" style="margin-bottom:14px">Estamos preparando esto para ti. Toca el botón de lo que te interesa y te avisamos cuando esté lista.</p>';
+  items.forEach(function(it){
+    var wl=waLink('Hola, quiero que me avisen cuando esté lista la sección de '+it[2]+' de '+BRAND+'.');
+    h+='<div class="card"><div class="row sp" style="align-items:flex-start;gap:10px"><h3 style="margin:0">'+esc(it[0])+'</h3><span class="soon">Próximamente</span></div>'+
+       '<p class="small muted" style="margin:8px 0 12px">'+esc(it[1])+'</p>'+
+       (wl?'<a class="btn alt block" style="text-decoration:none;display:flex;align-items:center;justify-content:center" href="'+wl+'" target="_blank" rel="noopener">Avísame cuando esté lista</a>':'')+'</div>';
+  });
+  h+='<button class="btn ghost block" data-a="shopClose" style="margin-top:6px">Volver a mi app</button>';
+  h+='<p class="foot">Dudas: '+esc(contactLine())+'</p>';
+  return h;
+}
 function renderAccessGate(){
   var h='<div class="top">'+markHtml()+'</div>';
   h+='<div class="hero"><h1 class="disp" style="font-size:40px">Tu código de acceso</h1>'+
@@ -1896,6 +1915,7 @@ function render(){
   var root=$('#app');
   if(!S.profile && !S.accessOk){ root.innerHTML = renderAccessGate(); return; }
   if(ui.howto){ root.innerHTML = renderHowTo(); return; }
+  if(ui.shop){ root.innerHTML = renderShop(); return; }
   if(!S.profile){ root.innerHTML = ui.welcome ? renderWelcome() : renderOnboarding(); }
   else { PLAN = computePlan(S.profile); root.innerHTML = ui.welcome ? renderWelcome() : renderMain(); }
 }
@@ -1916,7 +1936,8 @@ function finishOnboarding(){
 var H = {
   howto:function(){ ui.howto=true; render(); window.scrollTo(0,0); },
   plToggle:function(){ ui.plOpen=!ui.plOpen; render(); },
-  shopSoon:function(){ toast('La tienda '+BRAND_SHORT+' llega pronto 🛒'); },
+  shopSoon:function(){ ui.shop=true; render(); window.scrollTo(0,0); },
+  shopClose:function(){ ui.shop=false; render(); window.scrollTo(0,0); },
   motivClose:function(){ ui.motivN=0; render(); },
   howtoDone:function(){ ui.howto=false; S.howtoSeen=true; persist(); render(); window.scrollTo(0,0); },
   saveDay:function(){
@@ -2185,11 +2206,11 @@ function syncTimer(){
     tmEl=document.createElement('button'); tmEl.type='button'; tmEl.className='agtimer'; tmEl.setAttribute('aria-label','Temporizador de descanso de 3 minutos');
     tmEl.addEventListener('click',tmClick); document.body.appendChild(tmEl); tmDraw();
   }
-  var inMain=!!(S.profile && !ui.howto && !ui.welcome);
+  var inMain=!!(S.profile && !ui.howto && !ui.welcome && !ui.shop);
   var on=inMain && (ui.tab==='rutina' || tmEnd || tmDone);   // en reposo solo en Rutina; si corre o terminó, se ve en cualquier pestaña
   if(on) tmDraw(); else tmEl.className='agtimer';
 }
-document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome) render(); } });
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome && !ui.shop) render(); } });
 var _renderBase=render; render=function(){ _renderBase(); try{ syncTimer(); }catch(e){} };
 
 motivCheck();
