@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-10f';
+window.AG_VERSION='2026-10-10g';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -2030,7 +2030,7 @@ function renderPhotos(){
     } else {
       h+='<div class="card'+(fin?' phfinal':'')+'" style="padding:10px;text-align:center">'+(fin?'<div class="phcrown" aria-hidden="true">👑</div>':'')+'<img src="'+PH[k]+'" alt="'+esc(phKeyLabel(k))+'" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:0 auto"></div>';
     }
-    if(fin) h+='<p style="font-size:20px;line-height:1.4;margin-bottom:12px"><b>Ahí estás.</b><br><span class="muted" style="font-size:17px">'+(first?'Mira la de la semana 1 y mira esta. ':'')+'Eso no se compra, se trabaja.</span></p>'+
+    if(fin) h+='<p style="font-size:20px;line-height:1.4;margin-bottom:12px"><b>Ahí estás'+(nameCap()?', '+esc(nameCap()):'')+'.</b><br><span class="muted" style="font-size:17px">'+(first?'Mira la de la semana 1 y mira esta. ':'')+'Eso no se compra, se trabaja.</span></p>'+
       '<div class="callout" style="text-align:center;margin-bottom:14px"><b style="font-size:18px;line-height:1.45">Lo lograste, y esto es solo el inicio. Quien cumple una meta puede cumplirlas todas. Gracias por creer en ti. ¡Vamos por más!</b></div>';
     h+='<p class="small muted" style="margin-bottom:12px">Para tenerla también en tu galería, mantén presionada la foto y elige Guardar en Fotos. Si cambias de celular, esta foto no se pasa sola.</p>';
     h+='<button class="btn alt block" data-a="photoChange" data-v="'+k+'">Cambiar esta foto</button>';
@@ -2351,6 +2351,13 @@ function motivCheck(){
     if(S.motivDay2!==t){ S.motivDay2=t; S.motivN=(S.motivN||0)+1; ui.motivN=S.motivN; persist(); }
   }catch(e){}
 }
+/* Nombre capturado al inicio, con la primera letra en mayúscula. Se antepone al mensaje: "Juanito, hoy no tiene que ser perfecto..." */
+function nameCap(){ var n=firstName(); return n ? n.charAt(0).toUpperCase()+n.slice(1) : ''; }
+function motivText(m){
+  var nm=nameCap(); if(!nm) return m;
+  var keep=/^[A-ZÁÉÍÓÚÑ]{2}/.test(m) || /^\d/.test(m);          // siglas o números al inicio: no se pasa a minúscula
+  return nm+', '+(keep ? m : m.charAt(0).toLowerCase()+m.slice(1));
+}
 function motivCard(){
   if(!ui.motivN) return '';
   var n=ui.motivN, k=((n-1)%MOTIV.length)+1, lap=Math.floor((n-1)/MOTIV.length)+1, last=(k===MOTIV.length);
@@ -2358,7 +2365,7 @@ function motivCard(){
   return '<div class="card motiv'+(last?' motiv-last':'')+'"><div class="row sp" style="align-items:flex-start;gap:10px"><div style="min-width:0;flex:1">'+
     '<div class="small muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Mensaje '+k+' de '+MOTIV.length+(lap>1?' · vuelta '+lap:'')+'</div>'+
     '<div class="motivbar" aria-hidden="true"><i style="width:'+pct+'%"></i></div>'+
-    '<div style="font-size:17px;line-height:1.45;margin-top:10px">'+esc(MOTIV[k-1])+'</div></div>'+
+    '<div style="font-size:17px;line-height:1.45;margin-top:10px">'+esc(motivText(MOTIV[k-1]))+'</div></div>'+
     '<button type="button" class="chip" data-a="motivClose" aria-label="Cerrar mensaje" style="flex:none">✕</button></div></div>';
 }
 /* Temporizador de descanso (3 min). Vive fuera de #app para no reiniciarse al cambiar de pantalla. */
