@@ -45,5 +45,12 @@ window.AG_CONFIG = {
 
   // Tienda o catálogo (opcional). Link completo que empieza con https://
   // Mientras esté vacío, el pie de la app muestra "Tienda AG · pronto".
-  shopUrl: ""
+  shopUrl: "",
+
+  // Datos para que tus clientes paguen por transferencia (opcional). Se muestran en Tienda, en "Mi plan".
+  // Mientras payClabe esté vacío, la app dice que AG comparte los datos por WhatsApp.
+  payBank: "",     // ejemplo: "BBVA"
+  payHolder: "",   // nombre del titular de la cuenta
+  payClabe: "",    // CLABE de 18 dígitos
+  payNote: ""      // texto extra opcional, ejemplo: "Envía tu comprobante por WhatsApp"
 };

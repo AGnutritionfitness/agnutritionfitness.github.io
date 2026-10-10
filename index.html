@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-10h';
+window.AG_VERSION='2026-10-10i';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -84,6 +84,14 @@ h3{font-size:18px;font-weight:700}
 .phfinal{border:2px solid var(--mustard);background:linear-gradient(135deg,#1c1706,#0d0d0d);position:relative}
 .phcrown{font-size:36px;line-height:1}
 .phfinal .phcrown{margin-bottom:6px}
+.sigwrap{border:1px dashed var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.sigwrap canvas{display:block;width:100%;height:140px;touch-action:none;cursor:crosshair}
+.commitdates{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.commitdates div{background:#161616;border:1px solid var(--line);border-radius:8px;padding:10px}
+.commitdates span{display:block;margin-bottom:2px}
+.miss{display:flex;align-items:center;gap:10px;justify-content:space-between;background:var(--surface);border:1px solid var(--mustard);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:14px}
+.miss span{flex:1}
+.paybox{margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:8px;background:#161616;font-size:15px;line-height:1.6}
 .phgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .phtile{all:unset;box-sizing:border-box;position:relative;aspect-ratio:3/4;border:1px dashed var(--line);border-radius:10px;background:var(--surface);overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .phtile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -262,7 +270,7 @@ ul.gl li{margin-bottom:8px}
 /* Estos valores se cambian en el archivo config.js, sin tocar este código. */
 var CFG_DEFAULTS = {
   brand:'AG Nutrition + Fitness', brandShort:'AG', brandSub:'Nutrition + Fitness', contactName:'AG',
-  phone:'6621616567', email:'', countryCode:'52', logo:'', logoOnWhite:'true', appLink:'', playlistUrl:'', shopUrl:''
+  phone:'6621616567', email:'', countryCode:'52', logo:'', logoOnWhite:'true', appLink:'', playlistUrl:'', shopUrl:'', payBank:'', payHolder:'', payClabe:'', payNote:''
 };
 var CFG = (function(){ var u=window.AG_CONFIG||{}, c={}; for(var k in CFG_DEFAULTS){ c[k]=(u[k]!==undefined&&u[k]!==null)?String(u[k]):CFG_DEFAULTS[k]; } return c; })();
 var BRAND=CFG.brand, BRAND_SHORT=CFG.brandShort, BRAND_SUB=CFG.brandSub, CONTACT_NAME=CFG.contactName,
@@ -876,7 +884,7 @@ function progressBlock(){
 /* Día actual                                                           */
 /* ------------------------------------------------------------------ */
 function dayWon(r){ return !!(r && r.session!=null && r.water>=PLAN.cups && r.sleep>=7 && r.plan); }
-function dayRec(d){ d=d||todayIso(); if(!S.done[d]) S.done[d]={session:null,water:0,sleep:null,powder:false,fiber:false,plan:false,mood:null,energy:null,hard:null}; return S.done[d]; }
+function dayRec(d){ d=d||((ui.tab==='hoy' && ui.dayView)?ui.dayView:todayIso()); if(!S.done[d]) S.done[d]={session:null,water:0,sleep:null,powder:false,fiber:false,plan:false,mood:null,energy:null,hard:null}; return S.done[d]; }
 
 /* ------------------------------------------------------------------ */
 /* Semáforo del día: resume agua, sueño, sesión, menú y ánimo/energía   */
@@ -959,11 +967,11 @@ function validAccessCode(v){
   return n>=1 && n<=999;
 }
 
-function prog(){ var s='<div class="prog" aria-hidden="true">'; for(var i=1;i<=5;i++) s+='<b class="'+(i<=step?'on':'')+'"></b>'; return s+'</div>'; }
+function prog(){ var s='<div class="prog" aria-hidden="true">'; for(var i=1;i<=6;i++) s+='<b class="'+(i<=step?'on':'')+'"></b>'; return s+'</div>'; }
 function navBtns(last){
   return '<div class="row" style="margin-top:8px">'+
     '<button class="btn ghost" data-a="back" style="flex:1">Atrás</button>'+
-    '<button class="btn" data-a="'+(last?'finish':'next')+'" style="flex:2">'+(last?'Crear mi plan':'Siguiente')+'</button></div>';
+    '<button class="btn" data-a="'+(last?'finish':'next')+'" style="flex:2">'+(last?'Firmo y creo mi plan':'Siguiente')+'</button></div>';
 }
 function renderOnboarding(){
   var h='';
@@ -1027,8 +1035,11 @@ function renderOnboarding(){
        '<label class="chk"><input type="checkbox" data-a="pow" '+(draft.powder?'checked':'')+'><span>Uso o quiero usar proteína en polvo</span></label>'+
        '<label class="chk"><input type="checkbox" data-a="fib" '+(draft.fiber?'checked':'')+'><span>Uso o quiero usar fibra en suplemento</span></label>';
   }
+  else if(step===6){
+    h+='<h2 class="disp">Tu compromiso</h2>'+commitBlock(todayIso());
+  }
   if(formErr) h+='<p class="err" role="alert">'+esc(formErr)+'</p>';
-  h+=navBtns(step===5);
+  h+=navBtns(step===6);
   return h;
 }
 function validateStep(){
@@ -1046,6 +1057,7 @@ function validateStep(){
     var minG=18.5*Math.pow(hh/100,2);
     if(g<minG-0.01) return 'Con tu estatura, una meta menor a '+Math.ceil(minG)+' kg no es saludable. Elige una mayor.';
   }
+  if(step===6 && !draft.sig) return 'Firma con el dedo para comprometerte.';
   return '';
 }
 
@@ -1109,7 +1121,7 @@ function viewHoy(){
   var lv = si.step>=1 ? levelOf(si.step) : null;
   var fn=firstName();
   if(fn) h+='<h2 class="disp" style="font-size:30px;margin:4px 0 10px">Hola, '+esc(fn)+' 👋</h2>';
-  h+=motivCard();
+  h+=motivCard()+missBanner()+renewCard()+commitCard();
   h+='<div class="card"><div class="row sp" style="align-items:flex-end"><div>';
   if(si.step>=1) h+='<div class="big disp">Peldaño '+si.step+'</div><div class="lv disp">'+esc(lv[0])+'</div>';
   else h+='<div class="lv disp">Al pie de la escalera</div><div class="muted">'+(si.unit==='kg'?'Baja tu primer kilo para subir el primer peldaño.':'Completa 8 sesiones para subir el primer peldaño.')+'</div>';
@@ -1919,6 +1931,7 @@ function renderShop(){
   ];
   var h='<div class="top">'+markHtml()+'</div>';
   h+='<h2 class="disp">Tienda '+esc(BRAND_SHORT)+'</h2><p class="muted" style="margin-bottom:14px">Estamos preparando esto para ti. Toca el botón de lo que te interesa y te avisamos cuando esté lista.</p>';
+  h+=planCard();
   items.forEach(function(it){
     var wl=waLink('Hola, quiero que me avisen cuando esté lista la sección de '+it[2]+' de '+BRAND+'.');
     h+='<div class="card"><div class="row sp" style="align-items:flex-start;gap:10px"><h3 style="margin:0">'+esc(it[0])+'</h3><span class="soon">Próximamente</span></div>'+
@@ -1996,6 +2009,7 @@ function phPick(k){
       if(!f || !k2) return;
       phShrink(f,function(d){
         if(!d){ toast('No se pudo leer esa foto. Prueba con otra.'); return; }
+        if(k2==='final' && S.commit && !S.commit.doneOn){ S.commit.doneOn=todayIso(); persist(); }
         PH[k2]=d; ui.photoView=(k2==='final')?'final':null; render(); window.scrollTo(0,0);
         phPut(k2,d).then(function(){ toast('Foto guardada en tu teléfono'); },function(){ toast('Se ve ahora, pero tu navegador no la pudo guardar. No cierres la app.'); });
       });
@@ -2031,6 +2045,7 @@ function renderPhotos(){
       h+='<div class="card'+(fin?' phfinal':'')+'" style="padding:10px;text-align:center">'+(fin?'<div class="phcrown" aria-hidden="true">👑</div>':'')+'<img src="'+PH[k]+'" alt="'+esc(phKeyLabel(k))+'" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:0 auto"></div>';
     }
     if(fin) h+='<p style="font-size:20px;line-height:1.4;margin-bottom:12px"><b>Ahí estás'+(nameCap()?', '+esc(nameCap()):'')+'.</b><br><span class="muted" style="font-size:17px">'+(first?'Mira la de la semana 1 y mira esta. ':'')+'Eso no se compra, se trabaja.</span></p>'+
+      (S.commit&&S.commit.doneOn?'<p class="small muted" style="text-align:center;margin-bottom:10px">Firmé el '+esc(longDate(S.commit.signedOn))+' · Terminé el '+esc(longDate(S.commit.doneOn))+'</p>':'')+
       '<div class="callout" style="text-align:center;margin-bottom:14px"><b style="font-size:18px;line-height:1.45">Lo lograste, y esto es solo el inicio. Quien cumple una meta puede cumplirlas todas. Gracias por creer en ti. ¡Vamos por más!</b></div>';
     h+='<p class="small muted" style="margin-bottom:12px">Para tenerla también en tu galería, mantén presionada la foto y elige Guardar en Fotos. Si cambias de celular, esta foto no se pasa sola.</p>';
     h+='<button class="btn alt block" data-a="photoChange" data-v="'+k+'">Cambiar esta foto</button>';
@@ -2080,6 +2095,105 @@ function renderPhotos(){
   h+='<button class="btn ghost block" data-a="photosClose" style="margin-top:14px">Volver a mi app</button>';
   return h;
 }
+/* ===== Compromiso de 90 días, cuenta regresiva, días sin capturar y renovación mensual ===== */
+var COMMIT_DAYS=90;
+function planStart(){ return (S.commit&&S.commit.start)||(S.profile&&S.profile.start)||todayIso(); }
+function planDayNum(d){ return daysBetween(planStart(), d||todayIso())+1; }      // día 1 = día de inicio
+function planEnd(){ return addDays(planStart(), COMMIT_DAYS-1); }
+function planLeft(){ return COMMIT_DAYS-planDayNum(); }                          // 89 el día 1
+function cdText(){ var l=planLeft(); return l>0 ? 'Faltan '+l+(l===1?' día':' días')+' para tu nuevo yo' : (l===0 ? 'Hoy llega tu nuevo yo' : 'Tu nuevo yo ya llegó'); }
+function commitName(){ var n=S.profile ? firstName() : String(draft.name||'').trim().split(/\s+/)[0]; return n ? n.charAt(0).toUpperCase()+n.slice(1) : ''; }
+function commitBlock(start){
+  var nm=commitName(), end=addDays(start,COMMIT_DAYS-1);
+  return '<div class="card commit"><p style="font-size:19px;line-height:1.5">Yo, <b>'+(nm?esc(nm):'_____')+'</b>, me comprometo a cuidarme durante <b>90 días</b>.</p>'+
+    '<div class="commitdates"><div><span class="small muted">Empiezo</span><b>'+esc(longDate(start))+'</b></div><div><span class="small muted">Mi nuevo yo llega</span><b>'+esc(longDate(end))+'</b></div></div></div>'+
+    '<p class="small muted" style="margin-bottom:6px">Firma con el dedo aquí:</p><div class="sigwrap"><canvas id="sigPad" width="640" height="260"></canvas></div>'+
+    '<button type="button" class="btn ghost sm" data-a="sigClear" style="margin:8px 0 14px">Borrar firma</button>';
+}
+function initSig(){
+  var c=document.getElementById('sigPad'); if(!c) return;
+  var ctx=c.getContext('2d'); ctx.lineWidth=5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#fff'; ctx.fillStyle='#fff';
+  if(draft.sig){ var im=new Image(); im.onload=function(){ ctx.drawImage(im,0,0,c.width,c.height); }; im.src=draft.sig; }
+  var down=false, lx=0, ly=0;
+  function pos(e){ var r=c.getBoundingClientRect(); return [(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]; }
+  c.addEventListener('pointerdown',function(e){ down=true; var q=pos(e); lx=q[0]; ly=q[1]; try{ c.setPointerCapture(e.pointerId); }catch(x){} ctx.beginPath(); ctx.arc(lx,ly,2.5,0,6.3); ctx.fill(); e.preventDefault(); });
+  c.addEventListener('pointermove',function(e){ if(!down) return; var q=pos(e); ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(q[0],q[1]); ctx.stroke(); lx=q[0]; ly=q[1]; e.preventDefault(); });
+  function up(){ if(!down) return; down=false; draft.sig=c.toDataURL('image/png'); }
+  c.addEventListener('pointerup',up); c.addEventListener('pointercancel',up); c.addEventListener('pointerleave',up);
+}
+function renderCommit(){
+  var h='<div class="top">'+markHtml()+'</div><h2 class="disp">Tu compromiso</h2>'+commitBlock(planStart());
+  h+='<button class="btn block" data-a="commitSign">Firmo mi compromiso</button><button class="btn ghost block" data-a="commitClose" style="margin-top:8px">Ahora no</button>';
+  return h;
+}
+function commitCard(){
+  if(!S.profile || S.commit || S.commitHide===todayIso()) return '';
+  return '<div class="card flat plrow" style="margin-top:0"><div class="row sp" style="align-items:center;gap:10px"><div><b>✍️ Firma tu compromiso</b><span class="small muted" style="display:block">90 días, con fecha de inicio y de fin</span></div><button type="button" class="btn alt sm" data-a="commitOpen">Firmar</button><button type="button" class="chip" data-a="commitLater" aria-label="Cerrar">✕</button></div></div>';
+}
+/* Días sin capturar: ayer, antier y hace 3 días (solo desde el inicio del programa) */
+function hasData(d){ var r=S.done[d]; return !!(r && (r.session || r.water>0 || r.sleep!=null || r.plan || r.powder || r.fiber || r.mood!=null)); }
+var AGO=['','ayer','antier','hace 3 días'];
+function missedDays(){
+  if(!S.profile) return [];
+  var out=[], t=todayIso(), st=planStart();
+  for(var i=1;i<=3;i++){ var d=addDays(t,-i); if(d<st) break; if(!hasData(d)) out.push({d:d,i:i}); }
+  return out;
+}
+function missBanner(){
+  if(ui.dayView){
+    var i=daysBetween(ui.dayView,todayIso());
+    return '<div class="miss dayview"><span>Estás capturando: <b>'+esc(AGO[i]||fmtDate(ui.dayView))+'</b> ('+esc(fmtDate(ui.dayView))+')</span><button type="button" class="btn sm" data-a="dayDone">Listo, volver a hoy</button></div>';
+  }
+  if(S.missHide===todayIso()) return '';
+  var m=missedDays(); if(!m.length) return '';
+  var txt;
+  if(m.length===1) txt = m[0].i===1 ? 'Ayer no capturaste tu día.' : 'No capturaste tu día de '+AGO[m[0].i]+'.';
+  else txt='Te faltan por capturar: '+m.map(function(x){ return AGO[x.i]; }).join(', ').replace(/, ([^,]*)$/,' y $1')+'.';
+  return '<div class="miss"><span>'+txt+'</span><button type="button" class="btn sm" data-a="fillDay" data-v="'+m[0].d+'">Completar</button><button type="button" class="chip" data-a="missHide" aria-label="Cerrar">✕</button></div>';
+}
+/* Renovación mensual: aviso suave en los últimos 5 días de cada mes de 30 días (y al terminar los 90) */
+function renewInfo(){
+  if(!S.profile) return null;
+  var n=planDayNum(); if(n<1) return null;
+  if(n>COMMIT_DAYS) return {after:true};
+  var m=Math.ceil(n/30), endM=m*30, left=endM-n;
+  if(left<=4) return {m:m,left:left,endDate:addDays(planStart(),endM-1)};
+  return null;
+}
+function renewWa(r){
+  var nm=commitName();
+  return waLink('Hola '+CONTACT_NAME+', soy '+(nm||'cliente de '+BRAND_SHORT)+' y quiero renovar mi plan'+(r&&r.m&&r.m<3?' del mes '+(r.m+1):'')+'. ¿Me confirmas los datos para la transferencia?');
+}
+function renewCard(){
+  var r=renewInfo(); if(!r || S.renewHide===todayIso()) return '';
+  var t, sub;
+  if(r.after){ t='Terminaste tus 90 días 👑'; sub='¿Seguimos? Renueva tu plan y sigue sumando.'; }
+  else if(r.m>=3){ t='Tu compromiso de 90 días termina '+(r.left===0?'hoy':'el '+longDate(r.endDate)); sub='¿Seguimos? Renueva tu plan.'; }
+  else { t='Tu mes '+r.m+' termina '+(r.left===0?'hoy':'el '+longDate(r.endDate)); sub='Toca renovar para seguir sin pausa.'; }
+  var wl=renewWa(r);
+  return '<div class="card" style="border-left:3px solid var(--mustard)"><div class="row sp" style="align-items:flex-start;gap:10px"><div><b>'+esc(t)+'</b><span class="small muted" style="display:block;margin-top:2px">'+esc(sub)+'</span></div><button type="button" class="chip" data-a="renewHide" aria-label="Cerrar" style="flex:none">✕</button></div>'+
+    '<div class="row" style="margin-top:10px;gap:8px">'+(wl?'<a class="btn sm" style="text-decoration:none;flex:1;display:flex;align-items:center;justify-content:center" href="'+wl+'" target="_blank" rel="noopener">Renovar por WhatsApp</a>':'')+
+    '<button type="button" class="btn alt sm" style="flex:1" data-a="shopSoon">Ver datos de pago</button></div></div>';
+}
+function payBlock(){
+  if(!String(CFG.payClabe||'').trim()) return '<p class="small muted" style="margin:8px 0">'+esc(CONTACT_NAME)+' te comparte los datos de la transferencia por WhatsApp.</p>';
+  return '<div class="paybox"><div class="small muted">Transferencia</div>'+
+    (CFG.payBank?'<div>Banco: <b>'+esc(CFG.payBank)+'</b></div>':'')+(CFG.payHolder?'<div>Titular: <b>'+esc(CFG.payHolder)+'</b></div>':'')+
+    '<div>CLABE: <b style="letter-spacing:.04em">'+esc(CFG.payClabe)+'</b></div>'+
+    '<div class="small muted" style="margin-top:4px">En el concepto pon tu nombre'+(CFG.payNote?'. '+esc(CFG.payNote):'')+'.</div>'+
+    '<button type="button" class="btn alt sm" data-a="copyClabe" style="margin-top:8px">Copiar CLABE</button></div>';
+}
+function planCard(){
+  if(!S.profile) return '';
+  var n=Math.max(1,planDayNum()), c=S.commit;
+  var h='<div class="card" style="border-left:3px solid var(--mustard)"><h3 style="margin:0 0 6px">Mi plan</h3>';
+  h+= n<=COMMIT_DAYS ? '<p class="small muted">Día '+n+' de 90 · mes '+Math.ceil(n/30)+' de 3. Termina el '+esc(longDate(planEnd()))+'.</p>' : '<p class="small muted">Completaste tus 90 días. ¡Felicidades!</p>';
+  if(c && c.sig) h+='<p class="small muted" style="margin:8px 0 4px">Compromiso firmado el '+esc(longDate(c.signedOn))+'</p><img src="'+c.sig+'" alt="Mi firma" style="height:56px;background:#1a1a1a;border-radius:8px;padding:4px">';
+  h+=payBlock();
+  var wl=renewWa(renewInfo()||{});
+  if(wl) h+='<a class="btn block" style="text-decoration:none;display:flex;align-items:center;justify-content:center;margin-top:10px" href="'+wl+'" target="_blank" rel="noopener">Renovar o pagar por WhatsApp</a>';
+  return h+'</div>';
+}
 function renderAccessGate(){
   var h='<div class="top">'+markHtml()+'</div>';
   h+='<div class="hero"><h1 class="disp" style="font-size:40px">Tu código de acceso</h1>'+
@@ -2098,6 +2212,7 @@ function render(){
   if(ui.howto){ root.innerHTML = renderHowTo(); return; }
   if(ui.shop){ root.innerHTML = renderShop(); return; }
   if(ui.photos){ root.innerHTML = renderPhotos(); return; }
+  if(ui.commit){ root.innerHTML = renderCommit(); return; }
   if(!S.profile){ root.innerHTML = ui.welcome ? renderWelcome() : renderOnboarding(); }
   else { PLAN = computePlan(S.profile); root.innerHTML = ui.welcome ? renderWelcome() : renderMain(); }
 }
@@ -2112,6 +2227,7 @@ function finishOnboarding(){
     start:todayIso()
   };
   S.cycleIdx=0; S.done={}; S.weights={}; S.levelSeen=0; S.summitSeen=false;
+  S.commit={start:todayIso(),end:addDays(todayIso(),COMMIT_DAYS-1),signedOn:todayIso(),sig:draft.sig||null}; draft.sig='';
   persist(); ui.tab='hoy'; ui.week=null; ui.cday=null; ui.welcome=true; render(); window.scrollTo(0,0);
 }
 
@@ -2126,6 +2242,25 @@ var H = {
   photoWeekBack:function(){ ui.photoWeek=null; ui.photoView=null; render(); window.scrollTo(0,0); },
   photoChange:function(el){ phPick(el.dataset.v); },
   photoDel:function(el){ var k=el.dataset.v; if(!confirm('¿Borrar esta foto?')) return; delete PH[k]; ui.photoView=null; render(); phDel(k).catch(function(){}); },
+  sigClear:function(){ draft.sig=''; render(); },
+  commitOpen:function(){ ui.commit=true; render(); window.scrollTo(0,0); },
+  commitClose:function(){ ui.commit=false; draft.sig=''; render(); window.scrollTo(0,0); },
+  commitLater:function(){ S.commitHide=todayIso(); persist(); render(); },
+  commitSign:function(){
+    if(!draft.sig){ toast('Firma con el dedo primero'); return; }
+    S.commit={start:planStart(),end:addDays(planStart(),COMMIT_DAYS-1),signedOn:todayIso(),sig:draft.sig}; draft.sig='';
+    persist(); ui.commit=false; render(); window.scrollTo(0,0); toast('Compromiso firmado ✍️');
+  },
+  fillDay:function(el){ ui.dayView=el.dataset.v; render(); window.scrollTo(0,0); },
+  dayDone:function(){ ui.dayView=null; persist(); render(); window.scrollTo(0,0); toast('Día guardado'); },
+  missHide:function(){ S.missHide=todayIso(); persist(); render(); },
+  renewHide:function(){ S.renewHide=todayIso(); persist(); render(); },
+  copyClabe:function(){
+    var v=String(CFG.payClabe||'');
+    function ok(){ toast('CLABE copiada'); }
+    try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(ok,function(){ toast('Mantén presionada la CLABE para copiarla'); }); return; } }catch(e){}
+    toast('Mantén presionada la CLABE para copiarla');
+  },
   plToggle:function(){ ui.plOpen=!ui.plOpen; render(); },
   shopSoon:function(){ ui.shop=true; render(); window.scrollTo(0,0); },
   shopClose:function(){ ui.shop=false; render(); window.scrollTo(0,0); },
@@ -2171,7 +2306,7 @@ var H = {
   veg:function(el){ draft.veg=el.checked; },
   pow:function(el){ draft.powder=el.checked; },
   fib:function(el){ draft.fiber=el.checked; },
-  tab:function(el){ ui.tab=el.dataset.v; ui.confirmReset=false; render(); window.scrollTo(0,0); },
+  tab:function(el){ ui.dayView=null; ui.tab=el.dataset.v; ui.confirmReset=false; render(); window.scrollTo(0,0); },
   opencycle:function(el){ ui.cday=Number(el.dataset.v); ui.tab='rutina'; render(); window.scrollTo(0,0); },
   cday:function(el){ ui.cday=Number(el.dataset.v); render(); },
   wkn:function(el){ var w=(ui.week||curWeek())+Number(el.dataset.v); ui.week=Math.min(Math.max(12,curWeek()),Math.max(1,w)); render(); },
@@ -2365,7 +2500,7 @@ function motivCard(){
   var pct=Math.round(k/MOTIV.length*100);
   return '<div class="card motiv'+(last?' motiv-last':'')+'"><div class="row sp" style="align-items:flex-start;gap:10px"><div style="min-width:0;flex:1">'+
     '<div class="small muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Mensaje '+k+' de '+MOTIV.length+(lap>1?' · vuelta '+lap:'')+'</div>'+
-    '<div class="motivbar" aria-hidden="true"><i style="width:'+pct+'%"></i></div>'+
+    '<div class="small" style="color:var(--mustard);font-weight:700;margin-bottom:6px">'+esc(cdText())+'</div><div class="motivbar" aria-hidden="true"><i style="width:'+pct+'%"></i></div>'+
     '<div style="font-size:17px;line-height:1.45;margin-top:10px">'+esc(motivText(MOTIV[k-1],k))+'</div></div>'+
     '<button type="button" class="chip" data-a="motivClose" aria-label="Cerrar mensaje" style="flex:none">✕</button></div></div>';
 }
@@ -2405,12 +2540,12 @@ function syncTimer(){
     tmEl=document.createElement('button'); tmEl.type='button'; tmEl.className='agtimer'; tmEl.setAttribute('aria-label','Temporizador de descanso de 3 minutos');
     tmEl.addEventListener('click',tmClick); document.body.appendChild(tmEl); tmDraw();
   }
-  var inMain=!!(S.profile && !ui.howto && !ui.welcome && !ui.shop && !ui.photos);
+  var inMain=!!(S.profile && !ui.howto && !ui.welcome && !ui.shop && !ui.photos && !ui.commit);
   var on=inMain && (ui.tab==='rutina' || tmEnd || tmDone);   // en reposo solo en Rutina; si corre o terminó, se ve en cualquier pestaña
   if(on) tmDraw(); else tmEl.className='agtimer';
 }
-document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome && !ui.shop && !ui.photos) render(); } });
-var _renderBase=render; render=function(){ _renderBase(); try{ syncTimer(); }catch(e){} };
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome && !ui.shop && !ui.photos && !ui.commit) render(); } });
+var _renderBase=render; render=function(){ _renderBase(); try{ syncTimer(); }catch(e){} try{ initSig(); }catch(e){} };
 
 motivCheck();
 phLoad(function(){ if(S.profile && ui.tab==='avance' && !ui.photos && !ui.howto && !ui.welcome && !ui.shop) render(); });
