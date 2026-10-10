@@ -281,7 +281,8 @@ var PLATE = (String(CFG.logoOnWhite).toLowerCase()!=='false');
 var LOGO_SHOW=false, LOGO_DATA=null, LOGO_RATIO=3, LOGO_IMG=null;
 document.title = BRAND+': programa de 3 meses';
 function contactDigits(){ var d=String(CONTACT_PHONE).replace(/\D/g,''); return (/x/i.test(CONTACT_PHONE)||d.length!==10)?'':d; }
-function waLink(text){ var d=contactDigits(); return d ? 'https://wa.me/'+COUNTRY+d+'?text='+encodeURIComponent(text||'') : ''; }
+function waWho(){ var n=(S&&S.profile&&S.profile.name||'').trim().replace(/\s+/g,' '); return n ? n.replace(/(^|\s)(\S)/g,function(m,a,b){return a+b.toUpperCase();}) : ''; }
+function waLink(text){ var d=contactDigits(), w=waWho(); return d ? 'https://wa.me/'+COUNTRY+d+'?text='+encodeURIComponent((w?w+': ':'')+(text||'')) : ''; }
 function contactLine(){ return CONTACT_NAME+' | Tel. '+CONTACT_PHONE+(CONTACT_EMAIL?' | '+CONTACT_EMAIL:''); }
 function loadLogo(){
   if(!LOGO) return;
@@ -2162,7 +2163,7 @@ function renewInfo(){
 }
 function renewWa(r){
   var nm=commitName();
-  return waLink('Hola '+CONTACT_NAME+', soy '+(nm||'cliente de '+BRAND_SHORT)+' y quiero renovar mi plan'+(r&&r.m&&r.m<3?' del mes '+(r.m+1):'')+'. ¿Me confirmas los datos para la transferencia?');
+  return waLink('Hola '+CONTACT_NAME+', quiero renovar mi plan'+(r&&r.m&&r.m<3?' del mes '+(r.m+1):'')+'. ¿Me confirmas los datos para la transferencia?');
 }
 function renewCard(){
   var r=renewInfo(); if(!r || S.renewHide===todayIso()) return '';
