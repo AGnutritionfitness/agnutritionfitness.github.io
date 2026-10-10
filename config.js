@@ -37,5 +37,13 @@ window.AG_CONFIG = {
   logoOnWhite: "true",
 
   // Link de la app una vez publicada (se usa en el mensaje que se comparte al subir de peldaño)
-  appLink: ""
+  appLink: "",
+
+  // Playlist de Spotify de tu marca (opcional). Pega el link completo que empieza con https://
+  // Mientras esté vacío, la app muestra "Próximamente" en la sección de música.
+  playlistUrl: "",
+
+  // Tienda o catálogo (opcional). Link completo que empieza con https://
+  // Mientras esté vacío, el pie de la app muestra "Tienda AG · pronto".
+  shopUrl: ""
 };

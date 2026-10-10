@@ -62,6 +62,8 @@ h3{font-size:18px;font-weight:700}
 .mk2{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap}
 
 /* tarjetas */
+.plrow{margin-top:14px}
+.soon{flex:none;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mustard);border:1px solid var(--mustard);border-radius:999px;padding:5px 10px}
 .motiv{border-left:3px solid var(--mustard)}
 .motivbar{height:4px;border-radius:2px;background:#262626;overflow:hidden}
 .motivbar i{display:block;height:100%;background:var(--mustard);border-radius:2px}
@@ -225,7 +227,7 @@ ul.gl li{margin-bottom:8px}
 /* Estos valores se cambian en el archivo config.js, sin tocar este código. */
 var CFG_DEFAULTS = {
   brand:'AG Nutrition + Fitness', brandShort:'AG', brandSub:'Nutrition + Fitness', contactName:'AG',
-  phone:'6621616567', email:'', countryCode:'52', logo:'', logoOnWhite:'true', appLink:''
+  phone:'6621616567', email:'', countryCode:'52', logo:'', logoOnWhite:'true', appLink:'', playlistUrl:'', shopUrl:''
 };
 var CFG = (function(){ var u=window.AG_CONFIG||{}, c={}; for(var k in CFG_DEFAULTS){ c[k]=(u[k]!==undefined&&u[k]!==null)?String(u[k]):CFG_DEFAULTS[k]; } return c; })();
 var BRAND=CFG.brand, BRAND_SHORT=CFG.brandShort, BRAND_SUB=CFG.brandSub, CONTACT_NAME=CFG.contactName,
@@ -1030,7 +1032,7 @@ function renderMain(){
   else if(ui.tab==='dieta') h+=viewDieta();
   else h+=viewAvance();
   var wl = waLink('Hola, tengo una duda sobre mi programa de '+BRAND+'.');
-  h+='<div class="card flat" style="text-align:center;margin-top:8px"><div class="chips" style="justify-content:center"><button class="chip" data-a="guide">Guía de bienvenida</button><button class="chip" data-a="howto">Cómo usar la app</button>'+(wl?'<a class="chip" style="text-decoration:none;display:inline-flex;align-items:center" href="'+wl+'" target="_blank" rel="noopener">Escribir a '+esc(CONTACT_NAME)+'</a>':'')+'</div><p class="small muted" style="margin-top:10px">Dudas: '+esc(contactLine())+'</p></div>';
+  h+='<div class="card flat" style="text-align:center;margin-top:8px"><div class="chips" style="justify-content:center"><button class="chip" data-a="guide">Guía de bienvenida</button><button class="chip" data-a="howto">Cómo usar la app</button>'+shopChip()+(wl?'<a class="chip" style="text-decoration:none;display:inline-flex;align-items:center" href="'+wl+'" target="_blank" rel="noopener">Escribir a '+esc(CONTACT_NAME)+'</a>':'')+'</div><p class="small muted" style="margin-top:10px">Dudas: '+esc(contactLine())+'</p></div>';
   h+='<p class="foot">¿Dudas o algo no se siente bien? Escríbele directo a tu nutriólogo, está aquí para ti. Si sientes dolor de articulación, mareo o malestar, detente y contáctalo.</p>';
   h+='<nav class="nav" aria-label="Secciones"><div class="in in5">';
   [['hoy','Hoy'],['rutina','Rutina'],['dieta','Dieta'],['avance','Avance']].forEach(function(t){
@@ -1174,7 +1176,20 @@ function viewRutina(){
   h+='<p class="small muted" style="text-align:center;margin:-6px 0 14px">Hoy: <b class="mus">'+(n-1)+' pasos</b> en total.</p>';
   h+=advancedBlock(cd);
   h+=dlButton('Descargar la semana '+wk+' en PDF','dlpdf');
+  h+=playlistRow();
   return h;
+}
+/* Tienda AG: chip discreto en el pie. Con CFG.shopUrl abre la tienda; sin él avisa "próximamente". */
+function shopChip(){
+  var u=String(CFG.shopUrl||'').trim();
+  if(/^https:\/\//i.test(u)) return '<a class="chip" style="text-decoration:none;display:inline-flex;align-items:center" href="'+esc(u)+'" target="_blank" rel="noopener">Tienda '+esc(BRAND_SHORT)+'</a>';
+  return '<button class="chip" data-a="shopSoon">Tienda '+esc(BRAND_SHORT)+' · pronto</button>';
+}
+/* Playlist de AG: discreta, al final de la rutina. Con CFG.playlistUrl pasa a ser un botón; sin él dice "Próximamente". */
+function playlistRow(){
+  var u=String(CFG.playlistUrl||'').trim(), ok=/^https:\/\//i.test(u);
+  return '<div class="card flat plrow"><div class="row sp" style="align-items:center;gap:10px"><div><b>🎧 Playlists '+esc(BRAND_SHORT)+' Fitness</b><div class="small muted">Música para entrenar</div></div>'+
+    (ok?'<a class="btn alt sm" href="'+esc(u)+'" target="_blank" rel="noopener" style="text-decoration:none">Abrir en Spotify</a>':'<span class="soon">Próximamente</span>')+'</div></div>';
 }
 /* Sección Avanzados: técnicas de intensidad (plegables) + variantes más retadoras del grupo del día */
 function advancedBlock(cd){
@@ -1871,6 +1886,7 @@ function finishOnboarding(){
 
 var H = {
   howto:function(){ ui.howto=true; render(); window.scrollTo(0,0); },
+  shopSoon:function(){ toast('La tienda '+BRAND_SHORT+' llega pronto 🛒'); },
   motivClose:function(){ ui.motivN=0; render(); },
   howtoDone:function(){ ui.howto=false; S.howtoSeen=true; persist(); render(); window.scrollTo(0,0); },
   saveDay:function(){
