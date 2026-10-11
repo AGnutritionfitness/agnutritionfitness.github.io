@@ -497,6 +497,33 @@ function weekBoxes(sel){
   }
   return h;
 }
+function didPanel(){
+  if(!ui.did || ui.dayView) return '';
+  var t=todayIso(), h='<div class="card" style="border-color:var(--mustard)">';
+  if(ui.did.r==null){
+    h+='<h3 style="margin-bottom:6px">¡Qué bien! ¿Qué hiciste hoy?</h3><div class="chips" style="margin-bottom:10px">';
+    [0,1,2,3].forEach(function(i){ h+='<button type="button" class="chip" data-a="didPick" data-v="'+i+'">'+esc(i===3?'Cardio':CYCLE[i].n)+'</button>'; });
+    return h+'</div><button type="button" class="btn ghost sm" data-a="didCancel">Cancelar</button></div>';
+  }
+  var R=ui.did.r, D=didLater(R);
+  h+='<h3 style="margin-bottom:6px">Hoy: '+esc(R===3?'Cardio':CYCLE[R].n)+'</h3><p class="small muted" style="margin-bottom:10px">¿Qué hacemos con tu descanso de hoy?</p>';
+  if(D) h+='<button type="button" class="btn block" style="margin-bottom:8px" data-a="didMove" data-v="'+D+'">Pasar mi descanso al '+DOWL[dowIdx(D)]+'</button>';
+  h+='<button type="button" class="btn alt block" style="margin-bottom:8px" data-a="didRemove">Quitar el descanso (esta semana descanso un día menos)</button><button type="button" class="btn ghost sm" data-a="didCancel">Cancelar</button></div>';
+  return h;
+}
+function didFinish(moveTo){
+  var t=todayIso(), R=ui.did&&ui.did.r; if(R==null) return;
+  if(!S.swap) S.swap={};
+  S.swap[t]=R; if(moveTo) S.swap[moveTo]=4;
+  dayRec().session=R; ui.did=null; persist(); render();
+  toast(moveTo ? 'Listo: hoy entrenaste y tu descanso pasa al '+DOWL[dowIdx(moveTo)]+'.' : 'Listo: hoy quedó registrado y el descanso se quita esta semana.');
+  checkLevelUp(); checkStreak();
+}
+function didLater(R){
+  var t=todayIso();
+  for(var i=1;i<=6;i++){ var d=addDays(t,i); if(weekStartDate(d)!==weekStartDate(t)) break; if(dayPlan(d)===R) return d; }
+  return null;
+}
 function sessPending(){
   if(ui.dayView || !S.profile) return null;
   var t=todayIso(), y=addDays(t,-1);
@@ -1267,7 +1294,8 @@ function viewHoy(){
      '<div class="row">'+(pl===4?'':'<button class="btn alt" data-a="opencycle" data-v="'+pl+'" style="flex:1">Ver ejercicios</button>')+
      '<button class="btn '+(doneToday?'ghost':'')+'" data-a="done" style="flex:1">'+(doneToday?'Deshacer':(pl===4?'Hoy descansé':'Marcar hecha'))+'</button></div>';
   if(doneToday) h+='<p class="small mus" style="margin-top:10px">Registrado: '+cyc(rec.session).n+'.</p>';
-  h+='<button type="button" class="chip" style="margin-top:10px" data-a="goWeek">Ver mi semana</button></div>';
+  h+='<div class="row" style="margin-top:10px;gap:8px"><button type="button" class="chip" data-a="goWeek">Ver mi semana</button>'+((pl===4 && !doneToday && !ui.dayView)?'<button type="button" class="chip" data-a="didOpen">Hoy sí entrené</button>':'')+'</div></div>';
+  h+=didPanel();
 
   var pct=Math.min(100,Math.round(rec.water/PLAN.cups*100));
   h+='<div class="card"><div class="row sp"><h3>Hábitos de hoy</h3>'+(dayWon(rec)?'<span class="badge">Día ganado</span>':'')+'</div>'+
@@ -2584,6 +2612,11 @@ var H = {
     }
     persist(); render(); toast(msg);
   },
+  didOpen:function(){ ui.did={r:null}; render(); },
+  didCancel:function(){ ui.did=null; render(); },
+  didPick:function(el){ ui.did={r:Number(el.dataset.v)}; render(); },
+  didMove:function(el){ didFinish(el.dataset.v); },
+  didRemove:function(){ didFinish(null); },
   sessSkip:function(){ if(!S.miss) S.miss={}; S.miss[addDays(todayIso(),-1)]='s'; persist(); render(); },
   cday:function(el){ ui.cday=Number(el.dataset.v); render(); },
   wkn:function(el){ var w=(ui.week||curWeek())+Number(el.dataset.v); ui.week=Math.min(Math.max(12,curWeek()),Math.max(1,w)); render(); },
