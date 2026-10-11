@@ -2545,7 +2545,11 @@ function syncTimer(){
   var on=inMain && (ui.tab==='rutina' || tmEnd || tmDone);   // en reposo solo en Rutina; si corre o terminó, se ve en cualquier pestaña
   if(on) tmDraw(); else tmEl.className='agtimer';
 }
-document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tmTick(); var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome && !ui.shop && !ui.photos && !ui.commit) render(); } });
+function motivResume(){ try{ tmTick(); }catch(e){} var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome && !ui.shop && !ui.photos && !ui.commit) render(); }
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) motivResume(); });
+window.addEventListener('pageshow',motivResume);
+window.addEventListener('focus',motivResume);
+setInterval(function(){ if(!document.hidden) motivResume(); },60000);
 var _renderBase=render; render=function(){ _renderBase(); try{ syncTimer(); }catch(e){} try{ initSig(); }catch(e){} };
 
 motivCheck();
