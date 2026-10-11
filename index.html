@@ -870,6 +870,69 @@ function displayNameForKey(key){
   /* Respaldo: si no se encuentra en ningún catálogo, se arma un nombre legible desde la clave */
   return key.replace(/_/g,' ').replace(/\b\w/g,function(c){ return c.toUpperCase(); });
 }
+
+/* ---- Cargas semana a semana: recomendaciones orientativas a partir de lo que el cliente captura ---- */
+var FEEL=['','Fácil','Justo','Muy pesado'];
+function parseTgt(t){ var m=/(\d+)\s*x\s*(\d+)(?!\s*s)/i.exec(t||''); if(!m || /\d\s*s\b/.test(t||'')) return null; return {s:+m[1],r:+m[2]}; }
+function weekRange(w){ var f=addDays(S.profile.start,7*(w-1)); return [f,addDays(f,6)]; }
+function weekEntries(key,w){
+  var rg=weekRange(w), out=[];
+  Object.keys(S.logs||{}).sort().forEach(function(d){ if(d>=rg[0] && d<=rg[1]){ var e=S.logs[d][key]; if(e && e.w!=null) out.push({date:d,e:e}); } });
+  return out;
+}
+function fmtLoad(key,kg){ var u=weightUnit(key); return displayWeight(kg,u)+' '+u; }
+function entryOk(e){ var t=parseTgt(e.t); if(!t || e.s==null || e.r==null) return null; return e.s>=t.s && e.r>=t.r; }
+function loadReco(key,w){
+  var E=weekEntries(key,w); if(!E.length) return null;
+  var L=E[E.length-1].e, ok=entryOk(L), f=L.f||0;
+  var topNow=Math.max.apply(null,E.map(function(x){ return x.e.w; }));
+  var P=w>1 ? weekEntries(key,w-1) : [], PL=P.length?P[P.length-1].e:null;
+  var dropped=!!(PL && L.w < PL.w-0.05);
+  var step = L.w>=20 ? 2.5 : 1, next=r1(L.w+step), name=displayNameForKey(key);
+  var act, tag, txt;
+  if(f===3 || dropped){
+    act='tec'; tag='Afinar técnica';
+    txt=name+': deja '+fmtLoad(key,L.w)+' (o baja un poco) y cuida la técnica: movimiento lento, rango completo, descanso y sueño. Si hay dolor, detente y escríbele a AG.';
+  } else if(ok===false){
+    act='mant'; tag='Mantener'; txt=name+': todavía no completas todas las series y repeticiones. Quédate en '+fmtLoad(key,L.w)+' hasta lograrlo con buena técnica.';
+  } else if(f===1){
+    act='sub'; tag='Subir carga'; txt=name+': se sintió fácil. Prueba subir a '+fmtLoad(key,next)+' la próxima semana y vigila la técnica.';
+  } else if(f===2 && ok===true && PL && PL.f===2 && entryOk(PL)===true && Math.abs(PL.w-L.w)<0.06){
+    act='sub'; tag='Subir carga'; txt=name+': ya llevas dos semanas cumpliendo con '+fmtLoad(key,L.w)+'. Sube a '+fmtLoad(key,next)+'.';
+  } else if(f===2){
+    act='mant'; tag='Mantener'; txt=name+': buen trabajo. Una semana más en '+fmtLoad(key,L.w)+' para consolidar; si se siente fácil, sube.';
+  } else {
+    act='sin'; tag='Anota cómo se sintió'; txt=name+': anota si se sintió fácil, justo o muy pesado para poder recomendarte subir o ajustar.';
+  }
+  return {key:key,name:name,act:act,tag:tag,txt:txt,top:topNow,prev:PL?PL.w:null};
+}
+function weekRecos(w){
+  var keys={}, out=[]; var rg=weekRange(w);
+  Object.keys(S.logs||{}).forEach(function(d){ if(d>=rg[0] && d<=rg[1]) Object.keys(S.logs[d]).forEach(function(k){ if(S.logs[d][k].w!=null) keys[k]=1; }); });
+  Object.keys(keys).forEach(function(k){ var r=loadReco(k,w); if(r) out.push(r); });
+  var order={tec:0,sub:1,mant:2,sin:3}; return out.sort(function(a,b){ return order[a.act]-order[b.act]; });
+}
+function recoWeek(){ var w=curWeek(); for(var i=w;i>=1 && i>w-3;i--){ var r=weekRecos(i); if(r.length) return {w:i,list:r}; } return null; }
+function loadsWeekCard(){
+  var R=recoWeek(), h='<div class="card"><h3 style="margin-bottom:4px">Cargas de la semana</h3>';
+  if(!R) return h+'<p class="small muted">Cuando captures peso y cómo se sintió en Rutina, aquí verás qué ejercicios conviene subir y cuáles afinar.</p></div>';
+  h+='<p class="small muted" style="margin-bottom:10px">Semana '+R.w+'. Recomendación orientativa según lo que anotaste.</p>';
+  R.list.forEach(function(r){
+    var col = r.act==='sub'?'mus':(r.act==='tec'?'red':'muted');
+    h+='<div style="padding:8px 0;border-top:1px solid var(--line)"><div class="row sp"><b>'+esc(r.name)+'</b><span class="small '+col+'" style="font-weight:700">'+esc(r.tag)+'</span></div><div class="small muted">'+esc((function(t){ return t.charAt(0).toUpperCase()+t.slice(1); })(r.txt.replace(r.name+': ','')))+'</div></div>';
+  });
+  return h+'</div>';
+}
+function loadHistory(key){
+  var rows=[];
+  Object.keys(S.logs||{}).sort().reverse().forEach(function(d){ var e=S.logs[d][key]; if(e && e.w!=null) rows.push({d:d,e:e}); });
+  if(!rows.length) return '';
+  var h='<div class="scroll" style="margin-top:12px"><table class="tbl"><thead><tr><th>Fecha</th><th>Peso</th><th>Series × reps</th><th>Se sintió</th></tr></thead><tbody>';
+  rows.slice(0,10).forEach(function(r){
+    h+='<tr><td>'+esc(fmtDate(r.d))+'</td><td>'+esc(fmtLoad(key,r.e.w))+'</td><td>'+(r.e.s!=null?r.e.s:'-')+' × '+(r.e.r!=null?r.e.r:'-')+'</td><td>'+esc(FEEL[r.e.f||0]||'-')+'</td></tr>';
+  });
+  return h+'</tbody></table></div>';
+}
 function progressBlock(){
   var list=loggedExercises(), h='<div class="card"><h3 style="margin-bottom:4px">Progreso de cargas</h3><p class="small muted" style="margin-bottom:10px">Con lo que capturas en Rutina, así va subiendo el peso que usas en cada ejercicio.</p>';
   if(!list.length){ h+='<p class="small muted">Aún no has capturado pesos en ningún ejercicio. Hazlo desde la pestaña Rutina.</p></div>'; return h; }
@@ -878,7 +941,7 @@ function progressBlock(){
   list.forEach(function(it){ h+='<option value="'+esc(it.key)+'" '+(it.key===sel?'selected':'')+'>'+esc(displayNameForKey(it.key))+'</option>'; });
   h+='</select></label>';
   var hist=Object.keys(S.logs||{}).sort().map(function(d){ var e=S.logs[d][sel]; return e&&e.w!=null ? {date:d,y:e.w} : null; }).filter(Boolean);
-  h+=lineSVG(hist,'#e0a81c',' kg');
+  h+=lineSVG(hist,'#e0a81c',' kg')+loadHistory(sel);
   return h+'</div>';
 }
 /* ------------------------------------------------------------------ */
@@ -1207,7 +1270,7 @@ function viewRutina(){
 
   /* Pasos intermedios: ejercicios del plan de hoy */
   sessionsFor(cd).forEach(function(e){
-    h+=stepBlock(n++, e.n, setsFor(e,ph), e.s, e.tip, e.q, logBlock(e.n, e.t==='x'));
+    h+=stepBlock(n++, e.n, setsFor(e,ph), e.s, e.tip, e.q, logBlock(e.n, e.t==='x', setsFor(e,ph)));
   });
 
   /* Pasos opcionales: extras agregados por el usuario, numerados en la misma secuencia */
@@ -1291,8 +1354,8 @@ function lbToKg(lb){ return Math.round(lb/2.2046*100)/100; }
 function weightUnit(key){ if(!S.wUnit) S.wUnit={}; return S.wUnit[key]||'kg'; }
 function displayWeight(kg,unit){ if(kg==null) return ''; return unit==='lb' ? kgToLb(kg) : r1(kg); }
 /* Bloque de captura real: peso/reps para pesas, minutos para cardio, segundos para plancha */
-function logBlock(name,isCardio){
-  var rec=logGet(name)||{}, key=logKey(name);
+function logBlock(name,isCardio,tgt){
+  var rec=logGet(name)||{}, key=logKey(name), tg=tgt?String(tgt):'';
   var f;
   if(isCardio){
     f='<label class="f" style="margin:0"><span class="small muted">Minutos reales</span>'+
@@ -1300,11 +1363,13 @@ function logBlock(name,isCardio){
   } else {
     var u=weightUnit(key), wv=displayWeight(rec.w,u);
     f='<div class="grid3"><label class="f" style="margin:0"><span class="small muted row sp" style="gap:4px">Peso<span class="unitsw" data-a="toggleUnit" data-v="'+key+'">'+(u==='lb'?'lb':'kg')+' ⇄</span></span>'+
-      '<input type="number" step="0.5" inputmode="decimal" data-log="'+key+'" data-logf="w" data-logu="'+u+'" data-logn="'+esc(name)+'" value="'+(wv!==''?wv:'')+'" placeholder="'+u+'"></label>'+
+      '<input type="number" step="0.5" inputmode="decimal" data-log="'+key+'" data-logf="w" data-logu="'+u+'" data-logt="'+esc(tg)+'" data-logn="'+esc(name)+'" value="'+(wv!==''?wv:'')+'" placeholder="'+u+'"></label>'+
       '<label class="f" style="margin:0"><span class="small muted">Series</span>'+
-      '<input type="number" inputmode="numeric" data-log="'+key+'" data-logf="s" data-logn="'+esc(name)+'" value="'+(rec.s!=null?rec.s:'')+'" placeholder="#"></label>'+
+      '<input type="number" inputmode="numeric" data-log="'+key+'" data-logf="s" data-logt="'+esc(tg)+'" data-logn="'+esc(name)+'" value="'+(rec.s!=null?rec.s:'')+'" placeholder="#"></label>'+
       '<label class="f" style="margin:0"><span class="small muted">Reps</span>'+
-      '<input type="number" inputmode="numeric" data-log="'+key+'" data-logf="r" data-logn="'+esc(name)+'" value="'+(rec.r!=null?rec.r:'')+'" placeholder="#"></label></div>';
+      '<input type="number" inputmode="numeric" data-log="'+key+'" data-logf="r" data-logt="'+esc(tg)+'" data-logn="'+esc(name)+'" value="'+(rec.r!=null?rec.r:'')+'" placeholder="#"></label></div>'+
+      '<div class="small muted" style="margin:10px 0 6px">¿Cómo se sintió?</div><div class="chips feel" data-feel="'+key+'">'+
+      [[1,'Fácil'],[2,'Justo'],[3,'Muy pesado o falló la técnica']].map(function(o){ return '<button type="button" class="chip '+(rec.f===o[0]?'on':'')+'" data-a="feel" data-v="'+o[0]+'" data-n="'+esc(name)+'" data-logt="'+esc(tg)+'">'+o[1]+'</button>'; }).join('')+'</div>';
   }
   return '<div class="logbox"><div class="small muted" style="margin-bottom:5px">Registra lo que realmente hiciste hoy</div>'+f+'</div>';
 }
@@ -1427,7 +1492,7 @@ function viewAvance(){
      '<div class="card" style="margin:0;text-align:center"><div class="disp mus" style="font-size:34px">'+PLAN.goal12.toFixed(1)+'</div><div class="small muted">meta a 3 meses</div></div>'+
      '<div class="card" style="margin:0;text-align:center"><div class="disp mus" style="font-size:34px">'+Math.max(0,PLAN.H-k)+'</div><div class="small muted">semanas restantes</div></div></div>';
   h+='<div class="card"><h3 style="margin-bottom:6px">Curva de peso</h3>'+chartSVG()+'<p class="small muted"><span class="mus">Línea punteada:</span> tu curva sugerida. <span class="red">Línea roja:</span> tu peso real.</p></div>';
-  h+=progressBlock();
+  h+=loadsWeekCard()+progressBlock();
 
   h+='<div class="card"><h3 style="margin-bottom:8px">Tabla semanal</h3><div class="scroll"><table class="tbl"><thead><tr><th>Sem</th><th>Fecha</th><th>Meta</th><th>Real</th><th>Dif.</th></tr></thead><tbody>';
   rows.forEach(function(r){
@@ -1743,6 +1808,12 @@ function coachBlocks(scope){
   if(deltas.length){
     B.push({t:'grid',head:['Ejercicio','Primero','Último','Cambio'],rows:deltas.slice(0,12).map(function(d){ return [d.name,d.first+' kg',d.last+' kg',(d.delta<=0?'':'+')+d.delta+' kg']; }),w:[75,30,30,30]});
   } else B.push({t:'p',text:'Sin registros de peso por ejercicio en este periodo.'});
+  var RW=recoWeek();
+  if(RW){
+    B.push({t:'h2',text:'Cargas: qué hacer la próxima semana (semana '+RW.w+')'});
+    B.push({t:'grid',head:['Ejercicio','Sem ant.','Esta sem.','Qué hacer'],rows:RW.list.slice(0,12).map(function(r){ return [r.name,r.prev!=null?fmtLoad(r.key,r.prev):'-',fmtLoad(r.key,r.top),r.tag]; }),w:[65,30,30,40]});
+    RW.list.slice(0,12).forEach(function(r){ B.push({t:'li',text:r.txt}); });
+  }
   B.push({t:'h2',text:'Conclusiones y recomendaciones'});
   coachConclusions(fromK,toK,fromD,toD,label).forEach(function(c){ B.push({t:'li',text:c}); });
   B.push({t:'note',text:'Generado automáticamente a partir de los datos capturados en la app. No sustituye la valoración de tu coach o profesional de salud.'});
@@ -2344,6 +2415,13 @@ var H = {
     persist(); render(); toast('Agregado a tu sesión de hoy');
   },
   advTech:function(el){ ui.advOpen=(ui.advOpen===el.dataset.v?null:el.dataset.v); render(); },
+  feel:function(el){
+    var name=el.dataset.n, v=Number(el.dataset.v), rec=logGet(name)||{};
+    if(el.dataset.logt) rec.t=el.dataset.logt;
+    if(rec.f===v) delete rec.f; else rec.f=v;
+    logSet(name,rec);
+    var row=el.parentNode; if(row){ [].forEach.call(row.querySelectorAll('[data-a=feel]'),function(b){ b.classList.toggle('on', rec.f===Number(b.dataset.v)); }); }
+  },
   toggleUnit:function(el){
     var key=el.dataset.v; if(!S.wUnit) S.wUnit={};
     S.wUnit[key]=(S.wUnit[key]==='lb')?'kg':'lb';
@@ -2403,6 +2481,7 @@ document.addEventListener('input',function(e){
   if(el.dataset && el.dataset.log){
     var field=el.dataset.logf, name=el.dataset.logn, v=el.value;
     var rec=logGet(name)||{};
+    if(el.dataset.logt) rec.t=el.dataset.logt;
     if(v===''){ delete rec[field]; }
     else {
       var num=parseFloat(v);
