@@ -460,7 +460,8 @@ var CYCLE = [
 /* Semana de 7 cuadritos: 0 Jalón, 1 Empuje, 2 Pierna, 3 Descanso activo (cardio), 4 Descanso total */
 var OFFC={k:'off',n:'Descanso total',d:'Sin pesas ni cardio. Tu cuerpo se recupera.'};
 function cyc(i){ return i===4?OFFC:(CYCLE[i]||CYCLE[0]); }
-var WEEKPAT={3:[0,3,1,3,2,4,4],4:[0,1,3,2,0,4,4],5:[0,1,2,3,0,1,4],6:[0,1,2,0,1,2,4]};
+/* Las primeras N sesiones del ciclo (Jalón, Empuje, Pierna, Cardio, Jalón, Empuje). Descansos separados; el domingo solo se junta con el sábado. */
+var WEEKPAT={3:[0,4,1,4,2,4,4],4:[0,1,4,2,3,4,4],5:[0,1,2,3,0,4,4],6:[0,1,2,3,0,1,4]};
 var DOW=['L','M','M','J','V','S','D'], DOWL=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'], TYSHORT=['Jalón','Empuje','Pierna','Cardio','Libre'];
 function dowIdx(d){ return (new Date(d+'T12:00:00').getDay()+6)%7; }
 function weekStartDate(d){ return addDays(d,-dowIdx(d)); }
@@ -612,8 +613,9 @@ function setsFor(ex,ph){
 function placeName(k){ return {gym:'Gym completo',casa:'Casa con mancuernas',cuerpo:'Casa sin equipo'}[k]; }
 function sessionsFor(day){ return EX[S.profile.place][CYCLE[day].k]; }
 function weekCardio(){
-  var p=S.profile, d=p.days;
-  return Math.round(d*PLAN.cardioPer + (d/4)*PLAN.cardioDay);
+  var pat=WEEKPAT[S.profile.days]||WEEKPAT[4], w=0, a=0;
+  pat.forEach(function(x){ if(x<=2) w++; else if(x===3) a++; });
+  return Math.round(w*PLAN.cardioPer + a*PLAN.cardioDay);
 }
 function curWeek(){ return Math.max(1, Math.floor(daysBetween(S.profile.start, todayIso())/7)+1); }
 function phaseOf(week){ return (week-1)%4; }
@@ -1361,7 +1363,7 @@ function viewRutina(){
   h+='<h2 class="disp">Rutina</h2>'+
      '<div class="card"><div class="row sp"><button class="btn ghost sm" data-a="wkn" data-v="-1" aria-label="Semana anterior">&#8249;</button><div style="text-align:center"><div class="disp" style="font-size:30px;color:var(--mustard);white-space:nowrap">Semana '+wk+'</div><div class="wkdates">'+esc(rutWeekText(wk))+'</div><div class="small muted">'+placeName(p.place)+'</div></div><button class="btn ghost sm" data-a="wkn" data-v="1" aria-label="Semana siguiente">&#8250;</button></div>'+
      '<p class="small" style="margin-top:10px">'+PHASES[ph]+'.</p></div>';
-  h+='<div class="callout"><b>El cardio es el complemento de tus pesas.</b> Al terminar cada sesión de pesas, haz '+PLAN.cardioPer+' minutos de caminadora o caminata en inclinación. En el Descanso activo, '+PLAN.cardioDay+' minutos. Con '+p.days+' sesiones a la semana suman unos <b>'+weekCardio()+' minutos</b> de cardio.</div>';
+  h+='<div class="callout"><b>El cardio es el complemento de tus pesas.</b> Al terminar cada sesión de pesas, haz '+PLAN.cardioPer+' minutos de caminadora o caminata en inclinación. En el Descanso activo, '+PLAN.cardioDay+' minutos. Con '+p.days+' días de entrenamiento a la semana suman unos <b>'+weekCardio()+' minutos</b> de cardio.</div>';
   h+=weekBoxes(sd);
   if(cd===4){
     h+='<div class="card"><h3>Descanso total</h3><p class="muted">'+OFFC.d+' Duerme bien, toma agua y come según tu plan. Mañana sigues.</p></div>'+askModal();
@@ -1369,7 +1371,7 @@ function viewRutina(){
   }
   var isDescanso=(CYCLE[cd].k==='descanso');
   h+='<button type="button" class="btn alt block" style="margin-bottom:12px" data-a="askOpen">💬 ¿Dudas de cargas o técnica?</button>';
-  h+='<p class="small muted" style="margin-bottom:12px">'+CYCLE[cd].d+'. Esta semana: <b class="mus">'+p.days+' días con pesas</b>.</p>';
+  h+='<p class="small muted" style="margin-bottom:12px">'+CYCLE[cd].d+'. Esta semana: <b class="mus">'+p.days+' días de entrenamiento</b>.</p>';
 
   var n=1;
   /* Paso 1: siempre calentamiento */
@@ -1731,7 +1733,7 @@ function planBlocks(wk){
   B.push({t:'p',text:'Calorías: '+PLAN.kcal+' kcal | Proteína: '+PLAN.protein+' g | Carbohidratos: '+PLAN.carbs+' g | Grasas: '+PLAN.fat+' g'});
   B.push({t:'p',text:'Agua: '+PLAN.waterL.toFixed(1)+' L ('+PLAN.cups+' vasos) | Fibra: '+PLAN.fiber+' g | Sueño: 7 a 9 horas'});
   B.push({t:'h2',text:'Rutina: '+PHASES[ph]});
-  B.push({t:'p',text:'Semana: Jalón, Empuje y Pierna con pesas, descanso activo con cardio y descanso total el domingo. Cada semana empieza por el grupo menos trabajado; lo ideal es entrenar cada grupo al menos 2 veces por semana. Esta semana: '+p.days+' días con pesas. Cardio: '+PLAN.cardioPer+' min al terminar las pesas y '+PLAN.cardioDay+' min en el descanso activo (unos '+weekCardio()+' min a la semana).'});
+  B.push({t:'p',text:'Semana: Jalón, Empuje y Pierna con pesas, descanso activo con cardio y descanso total el domingo. Cada semana empieza por el grupo menos trabajado; lo ideal es entrenar cada grupo al menos 2 veces por semana. Esta semana: '+p.days+' días de entrenamiento. Cardio: '+PLAN.cardioPer+' min al terminar las pesas y '+PLAN.cardioDay+' min en el descanso activo (unos '+weekCardio()+' min a la semana).'});
   CYCLE.forEach(function(c,i){
     B.push({t:'h3',text:'Día '+(i+1)+': '+c.n+' ('+c.d+')'});
     var isDesc=(c.k==='descanso'), step=1;
