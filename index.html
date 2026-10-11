@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-11f';
+window.AG_VERSION='2026-10-11g';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -1912,6 +1912,22 @@ function welcomeBlocks(){
     {k:'Comes',v:'4 veces al día',s:'con proteína en cada una'}
   ]});
   B.push({t:'p',text:'En 3 meses no buscamos un cambio de golpe: buscamos que te estabilices. Vas a construir el ritmo, los hábitos y el método para que cuidar tu peso, tu salud y cómo te ves sea algo que haces tú, sin dietas de castigo ni retos de moda. Este programa te deja listo para el siguiente nivel.'});
+
+  B.push({t:'h2',text:'Novedades de tu app: octubre'});
+  B.push({t:'p',text:'Esto es lo nuevo este mes. Más abajo te explicamos cada cosa.'});
+  B.push({t:'li',lead:'Compromiso de 90 días.',text:'Lo firmas con el dedo y en Hoy ves la cuenta regresiva para tu nuevo yo.'});
+  B.push({t:'li',lead:'Mensaje del día.',text:'90 mensajes, uno por cada día que abres la app.'});
+  B.push({t:'li',lead:'Días sin capturar.',text:'La app te avisa si se te pasó registrar algún día y lo completas con un toque.'});
+  B.push({t:'li',lead:'Temporizador de descanso.',text:'Botón ⏱ 3:00 en Rutina; suena y vibra al terminar.'});
+  B.push({t:'li',lead:'Kilos o libras.',text:'Anota el peso de cada ejercicio en la unidad que uses en tu gym.'});
+  B.push({t:'li',lead:'Cargas semana a semana.',text:'Historial por fecha, cómo se sintió y recomendaciones de qué subir y qué afinar.'});
+  B.push({t:'li',lead:'Consultar.',text:'Tus dudas de cargas o técnica le llegan a tu nutriólogo por WhatsApp con tu último registro.'});
+  B.push({t:'li',lead:'Música para entrenar.',text:'10 playlists de Spotify en Rutina.'});
+  B.push({t:'li',lead:'Fotos de progreso.',text:'Frente, perfil y cara cada semana, más tu foto 13: Mi nuevo yo.'});
+  B.push({t:'li',lead:'Lista de súper.',text:'Tu lista de la semana en Dieta, a tu WhatsApp o en PDF, y cada sábado a las 8 am en Hoy.'});
+  B.push({t:'li',lead:'Mi plan y renovación.',text:'En la Tienda ves tu avance de los 90 días y renuevas por WhatsApp.'});
+  B.push({t:'li',lead:'Tienda AG.',text:'Asesoría 1 a 1, suplementos, accesorios y ropa, muy pronto.'});
+  B.push({t:'li',lead:'Se actualiza sola.',text:'Cada mejora te llega al abrir la app, sin descargar nada.'});
 
   B.push({t:'h2',text:'Qué te llevas en 3 meses'});
   B.push({t:'li',lead:'Tu peso.',text:'Aprendes a manejarlo: una curva clara, una pesada por semana y saber qué ajustar cuando la báscula se detiene.'});
