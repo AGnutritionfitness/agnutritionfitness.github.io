@@ -381,6 +381,7 @@ function idbGet(){
   });
 }
 function persist(){
+  _rotC={};
   var s=JSON.stringify(S);
   try{ localStorage.setItem(KEY,s); }catch(e){ mem=s; }
   /* nunca se espeja un estado vacío: así no se pisa la copia buena antes de recuperarla */
@@ -467,22 +468,34 @@ function dowIdx(d){ return (new Date(d+'T12:00:00').getDay()+6)%7; }
 function weekStartDate(d){ return addDays(d,-dowIdx(d)); }
 /* Cada semana (desde ROT_FROM) arranca con el grupo muscular menos trabajado en las 4 semanas previas; el resto sigue el orden del ciclo. */
 var ROT_FROM='2026-10-12';
+var _rotC={};
 function rotOffset(ws){
   if(ws<ROT_FROM || !S.done) return 0;
+  var t=todayIso(), key=ws+'|'+t; if(_rotC[key]!=null) return _rotC[key];
   var cnt=[0,0,0], last=['','',''];
-  for(var i=1;i<=28;i++){ var d=addDays(ws,-i), r=S.done[d]; if(r && r.session!=null && r.session<=2){ cnt[r.session]++; if(!last[r.session]) last[r.session]=d; } }
+  for(var i=1;i<=28;i++){
+    var d=addDays(ws,-i), r=S.done[d], x=null;
+    if(r && r.session!=null) x=r.session;
+    else if(d>=t) x=dayPlan(d);   // días que aún vienen: se cuenta lo planeado, para proyectar las semanas siguientes
+    if(x!=null && x<=2){ cnt[x]++; if(!last[x]) last[x]=d; }
+  }
   var best=0;
   for(var g=1;g<3;g++){ if(cnt[g]<cnt[best] || (cnt[g]===cnt[best] && last[g]<last[best])) best=g; }
-  return best;
+  _rotC[key]=best; return best;
 }
 function dayPlan(d){
   if(S.swap && S.swap[d]!=null) return S.swap[d];
   var days=(S.profile&&S.profile.days)||4, v=(WEEKPAT[days]||WEEKPAT[4])[dowIdx(d)];
   return v<=2 ? (v+rotOffset(weekStartDate(d)))%3 : v;
 }
-function selDay(){ var t=todayIso(); return (ui.selDate && weekStartDate(ui.selDate)===weekStartDate(t)) ? ui.selDate : t; }
-function weekBoxes(sel){
-  var t=todayIso(), ws=weekStartDate(t), h='<div class="wk7" role="group" aria-label="Tu semana">';
+function dispWs(wk){ return addDays(weekStartDate(todayIso()),7*(wk-curWeek())); }
+function selDay(wk){
+  wk=wk||ui.week||curWeek(); var ws=dispWs(wk), t=todayIso();
+  if(ui.selDate && ui.selDate>=ws && ui.selDate<=addDays(ws,6)) return ui.selDate;
+  return wk===curWeek() ? t : ws;
+}
+function weekBoxes(sel,wk){
+  wk=wk||ui.week||curWeek(); var t=todayIso(), ws=dispWs(wk), cur=(wk===curWeek()), h='<div class="wk7" role="group" aria-label="Tu semana">';
   for(var i=0;i<7;i++){
     var d=addDays(ws,i), pl=dayPlan(d), r=S.done[d], did=!!(r&&r.session!=null);
     var miss=(d<t && !did && pl<=2 && S.profile && d>=S.profile.start);
@@ -492,7 +505,7 @@ function weekBoxes(sel){
   h+='</div><p class="small muted" style="margin:-4px 0 10px">Cardio es descanso activo (solo cardio). Libre es descanso total.</p><p class="small muted" style="margin:-4px 0 10px">Cada semana empieza por el grupo muscular que menos has trabajado. Lo ideal es entrenar cada grupo (Jalón, Empuje, Pierna) al menos 2 veces por semana; si puedes, reacomoda tu semana con "Cambiar este día de lugar".</p>';
   if(ui.swapFrom){
     h+='<div class="callout"><b>Cambiar '+DOWL[dowIdx(ui.swapFrom)]+'.</b> Toca el día con el que lo quieres intercambiar.<div class="row" style="margin-top:8px"><button class="btn ghost sm" data-a="swapCancel">Cancelar</button></div></div>';
-  } else if(sel>=t){
+  } else if(cur && sel>=t){
     h+='<button type="button" class="btn ghost sm" style="margin-bottom:12px" data-a="swapStart">Cambiar este día de lugar</button>';
   }
   return h;
@@ -1376,7 +1389,7 @@ function askModal(){
 }
 /* Fechas chiquitas en Rutina: rango de la semana y, en cada Día del ciclo, cuándo se hizo esa semana (o "hoy" si es el que toca) */
 function rutWeekText(wk){
-  var r=weekRange(wk), a=fromIso(r[0]), b=fromIso(r[1]);
+  var r=[dispWs(wk),addDays(dispWs(wk),6)], a=fromIso(r[0]), b=fromIso(r[1]);
   return (a.getMonth()===b.getMonth() ? a.getDate() : fmtDate(r[0]))+' – '+fmtDate(r[1]);
 }
 function rutDayDate(i,wk){
@@ -1387,12 +1400,12 @@ function rutDayDate(i,wk){
   return '';
 }
 function viewRutina(){
-  var p=S.profile, wk=ui.week||curWeek(), ph=phaseOf(wk), sd=selDay(), cd=dayPlan(sd), h='';
+  var p=S.profile, wk=ui.week||curWeek(), ph=phaseOf(wk), sd=selDay(wk), cd=dayPlan(sd), h='';
   h+='<h2 class="disp">Rutina</h2>'+
      '<div class="card"><div class="row sp"><button class="btn ghost sm" data-a="wkn" data-v="-1" aria-label="Semana anterior">&#8249;</button><div style="text-align:center"><div class="disp" style="font-size:30px;color:var(--mustard);white-space:nowrap">Semana '+wk+'</div><div class="wkdates">'+esc(rutWeekText(wk))+'</div><div class="small muted">'+placeName(p.place)+'</div></div><button class="btn ghost sm" data-a="wkn" data-v="1" aria-label="Semana siguiente">&#8250;</button></div>'+
      '<p class="small" style="margin-top:10px">'+PHASES[ph]+'.</p></div>';
   h+='<div class="callout"><b>El cardio es el complemento de tus pesas.</b> Al terminar cada sesión de pesas, haz '+PLAN.cardioPer+' minutos de caminadora o caminata en inclinación. En el Descanso activo, '+PLAN.cardioDay+' minutos. Con '+p.days+' días de entrenamiento a la semana suman unos <b>'+weekCardio()+' minutos</b> de cardio.</div>';
-  h+=weekBoxes(sd);
+  h+=weekBoxes(sd,wk);
   if(cd===4){
     h+='<div class="card"><h3>Descanso total</h3><p class="muted">'+OFFC.d+' Duerme bien, toma agua y come según tu plan. Mañana sigues.</p></div>'+askModal();
     return h;
@@ -2619,7 +2632,7 @@ var H = {
   didRemove:function(){ didFinish(null); },
   sessSkip:function(){ if(!S.miss) S.miss={}; S.miss[addDays(todayIso(),-1)]='s'; persist(); render(); },
   cday:function(el){ ui.cday=Number(el.dataset.v); render(); },
-  wkn:function(el){ var w=(ui.week||curWeek())+Number(el.dataset.v); ui.week=Math.min(Math.max(12,curWeek()),Math.max(1,w)); render(); },
+  wkn:function(el){ ui.swapFrom=null; var w=(ui.week||curWeek())+Number(el.dataset.v); ui.week=Math.min(Math.max(12,curWeek()),Math.max(1,w)); render(); },
   dday:function(el){ ui.dday=Number(el.dataset.v); render(); },
   water:function(el){
     var r=dayRec(), before=r.water>=PLAN.cups;
@@ -3020,7 +3033,7 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden) mo
 window.addEventListener('pageshow',motivResume);
 window.addEventListener('focus',motivResume);
 setInterval(function(){ if(!document.hidden) motivResume(); },60000);
-var _renderBase=render; render=function(){ _renderBase(); try{ syncTimer(); }catch(e){} try{ initSig(); }catch(e){} };
+var _renderBase=render; render=function(){ _rotC={}; _renderBase(); try{ syncTimer(); }catch(e){} try{ initSig(); }catch(e){} };
 
 motivCheck();
 phLoad(function(){ if(S.profile && ui.tab==='avance' && !ui.photos && !ui.howto && !ui.welcome && !ui.shop) render(); });
