@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-11i';
+window.AG_VERSION='2026-10-11j';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -161,6 +161,8 @@ label.chk input{flex:none;width:22px;height:22px;margin-top:2px;accent-color:var
 /* rutina */
 .tabs4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
 .tabs4 button{min-height:52px;padding:6px 4px;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--text);cursor:pointer;font-size:14px;line-height:1.15}
+.tabs4 button .tdate{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:3px}
+.wkdates{font-size:12px;color:var(--muted);margin:2px 0 1px}
 .tabs4 button.on{background:var(--mustard);border-color:var(--mustard);color:#000;font-weight:700}
 .ex{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px;padding:14px;margin-bottom:12px}
 .step-ex{display:flex;gap:12px;align-items:flex-start;padding:14px 14px 14px 10px}
@@ -1283,14 +1285,26 @@ function askModal(){
   if(wl) h+='<a class="btn block" style="text-decoration:none;text-align:center" href="'+esc(wl)+'" target="_blank" rel="noopener">Preguntarle a AG por WhatsApp</a>';
   return h+'<p class="small muted" style="margin-top:10px">Orientación general, no sustituye a tu coach ni a un médico.</p></div></div>';
 }
+/* Fechas chiquitas en Rutina: rango de la semana y, en cada Día del ciclo, cuándo se hizo esa semana (o "hoy" si es el que toca) */
+function rutWeekText(wk){
+  var r=weekRange(wk), a=fromIso(r[0]), b=fromIso(r[1]);
+  return (a.getMonth()===b.getMonth() ? a.getDate() : fmtDate(r[0]))+' – '+fmtDate(r[1]);
+}
+function rutDayDate(i,wk){
+  var r=weekRange(wk), hit='';
+  Object.keys(S.done||{}).forEach(function(d){ if(d>=r[0] && d<=r[1] && S.done[d] && S.done[d].session===i && d>hit) hit=d; });
+  if(hit) return '✓ '+fmtDate(hit);
+  if(wk===curWeek() && i===S.cycleIdx) return 'hoy';
+  return '';
+}
 function viewRutina(){
   var p=S.profile, wk=ui.week||curWeek(), ph=phaseOf(wk), cd=(ui.cday==null?S.cycleIdx:ui.cday), h='';
   h+='<h2 class="disp">Rutina</h2>'+
-     '<div class="card"><div class="row sp"><button class="btn ghost sm" data-a="wkn" data-v="-1" aria-label="Semana anterior">&#8249;</button><div style="text-align:center"><div class="disp" style="font-size:30px;color:var(--mustard);white-space:nowrap">Semana '+wk+'</div><div class="small muted">'+placeName(p.place)+'</div></div><button class="btn ghost sm" data-a="wkn" data-v="1" aria-label="Semana siguiente">&#8250;</button></div>'+
+     '<div class="card"><div class="row sp"><button class="btn ghost sm" data-a="wkn" data-v="-1" aria-label="Semana anterior">&#8249;</button><div style="text-align:center"><div class="disp" style="font-size:30px;color:var(--mustard);white-space:nowrap">Semana '+wk+'</div><div class="wkdates">'+esc(rutWeekText(wk))+'</div><div class="small muted">'+placeName(p.place)+'</div></div><button class="btn ghost sm" data-a="wkn" data-v="1" aria-label="Semana siguiente">&#8250;</button></div>'+
      '<p class="small" style="margin-top:10px">'+PHASES[ph]+'.</p></div>';
   h+='<div class="callout"><b>El cardio es el complemento de tus pesas.</b> Al terminar cada sesión de pesas, haz '+PLAN.cardioPer+' minutos de caminadora o caminata en inclinación. En el Descanso activo, '+PLAN.cardioDay+' minutos. Con '+p.days+' sesiones a la semana suman unos <b>'+weekCardio()+' minutos</b> de cardio.</div>';
   h+='<div class="tabs4" role="tablist">';
-  CYCLE.forEach(function(c,i){ h+='<button role="tab" aria-selected="'+(cd===i)+'" class="'+(cd===i?'on':'')+'" data-a="cday" data-v="'+i+'">Día '+(i+1)+'<br>'+c.n+'</button>'; });
+  CYCLE.forEach(function(c,i){ var dd=rutDayDate(i,wk); h+='<button role="tab" aria-selected="'+(cd===i)+'" class="'+(cd===i?'on':'')+'" data-a="cday" data-v="'+i+'">Día '+(i+1)+'<br>'+c.n+(dd?'<small class="tdate">'+esc(dd)+'</small>':'')+'</button>'; });
   h+='</div>';
   var isDescanso=(CYCLE[cd].k==='descanso');
   h+='<button type="button" class="btn alt block" style="margin-bottom:12px" data-a="askOpen">💬 ¿Dudas de cargas o técnica?</button>';
