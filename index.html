@@ -159,6 +159,13 @@ label.chk input{width:22px;height:22px;margin-top:2px;accent-color:var(--red)}
 .lv{font-size:26px}
 
 /* rutina */
+.wk7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px}
+.wk7 button{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:68px;padding:6px 0;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--text);cursor:pointer;font-size:10px}
+.wk7 .dw{font-size:11px;color:#a9a9a9}.wk7 .dn{font-size:15px;font-weight:700}.wk7 .ty{font-size:10px}
+.wk7 button.rest{opacity:.75}.wk7 button.today{border-color:var(--mustard)}
+.wk7 button.on{background:var(--mustard);border-color:var(--mustard);color:#000}.wk7 button.on .dw{color:#000}
+.wk7 button.miss{border-style:dashed;opacity:.55}
+.wk7 .ck{position:absolute;top:1px;right:3px;font-size:11px;color:#3ecf8e;font-weight:700}.wk7 button.on .ck{color:#000}
 .tabs4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
 .tabs4 button{min-height:52px;padding:6px 4px;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--text);cursor:pointer;font-size:14px;line-height:1.15}
 .tabs4 button.on{background:var(--mustard);border-color:var(--mustard);color:#000;font-weight:700}
@@ -448,6 +455,47 @@ var CYCLE = [
   {k:'pierna',  n:'Pierna',          d:'Piernas y glúteo'},
   {k:'descanso',n:'Descanso activo', d:'Solo cardio, sin pesas'}
 ];
+/* Semana de 7 cuadritos: 0 Jalón, 1 Empuje, 2 Pierna, 3 Descanso activo (cardio), 4 Descanso total */
+var OFFC={k:'off',n:'Descanso total',d:'Sin pesas ni cardio. Tu cuerpo se recupera.'};
+function cyc(i){ return i===4?OFFC:(CYCLE[i]||CYCLE[0]); }
+var WEEKPAT={3:[0,3,1,3,2,4,4],4:[0,1,3,2,0,4,4],5:[0,1,2,3,0,1,4],6:[0,1,2,0,1,2,4]};
+var DOW=['L','M','M','J','V','S','D'], DOWL=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'], TYSHORT=['Jalón','Empuje','Pierna','Cardio','Libre'];
+function dowIdx(d){ return (new Date(d+'T12:00:00').getDay()+6)%7; }
+function weekStartDate(d){ return addDays(d,-dowIdx(d)); }
+function dayPlan(d){
+  if(S.swap && S.swap[d]!=null) return S.swap[d];
+  var days=(S.profile&&S.profile.days)||4; return (WEEKPAT[days]||WEEKPAT[4])[dowIdx(d)];
+}
+function selDay(){ var t=todayIso(); return (ui.selDate && weekStartDate(ui.selDate)===weekStartDate(t)) ? ui.selDate : t; }
+function weekBoxes(sel){
+  var t=todayIso(), ws=weekStartDate(t), h='<div class="wk7" role="group" aria-label="Tu semana">';
+  for(var i=0;i<7;i++){
+    var d=addDays(ws,i), pl=dayPlan(d), r=S.done[d], did=!!(r&&r.session!=null);
+    var miss=(d<t && !did && pl<=2 && S.profile && d>=S.profile.start);
+    h+='<button type="button" class="'+(d===sel?'on ':'')+(d===t?'today ':'')+(did?'did ':'')+(miss?'miss ':'')+(pl>=3?'rest':'')+'" data-a="selDay" data-v="'+d+'" aria-label="'+DOWL[i]+': '+esc(cyc(pl).n)+'">'+
+      '<span class="dw">'+DOW[i]+'</span><span class="dn">'+Number(d.slice(8))+'</span><span class="ty">'+TYSHORT[pl]+'</span>'+(did?'<span class="ck">✓</span>':'')+'</button>';
+  }
+  h+='</div><p class="small muted" style="margin:-4px 0 10px">Cardio es descanso activo (solo cardio). Libre es descanso total.</p>';
+  if(ui.swapFrom){
+    h+='<div class="callout"><b>Cambiar '+DOWL[dowIdx(ui.swapFrom)]+'.</b> Toca el día con el que lo quieres intercambiar.<div class="row" style="margin-top:8px"><button class="btn ghost sm" data-a="swapCancel">Cancelar</button></div></div>';
+  } else if(sel>=t){
+    h+='<button type="button" class="btn ghost sm" style="margin-bottom:12px" data-a="swapStart">Cambiar este día de lugar</button>';
+  }
+  return h;
+}
+function sessPending(){
+  if(ui.dayView || !S.profile) return null;
+  var t=todayIso(), y=addDays(t,-1);
+  if(y<S.profile.start || (S.miss&&S.miss[y])) return null;
+  var py=dayPlan(y), r=S.done[y];
+  if(py>2 || (r&&r.session!=null)) return null;
+  if(S.done[t] && S.done[t].session!=null) return null;
+  return py;
+}
+function sessBanner(){
+  var py=sessPending(); if(py==null) return '';
+  return '<div class="miss"><span>Ayer te tocaba <b>'+esc(cyc(py).n)+'</b>. ¿La haces hoy?</span><button type="button" class="btn sm" data-a="sessToday">Sí, hoy</button><button type="button" class="btn ghost sm" data-a="sessSkip">Saltarla</button></div>';
+}
 function x(n,t,q,s,tip,fixed){ return {n:n,t:t,q:q,s:s,tip:tip||'',fixed:fixed||''}; }
 
 var EX = {
@@ -781,7 +829,7 @@ function latestWeight(){
 function stepInfo(){
   var p=S.profile;
   if(p.priority==='mantener'){
-    var n=Object.keys(S.done).filter(function(d){ return S.done[d].session!=null; }).length;
+    var n=Object.keys(S.done).filter(function(d){ return S.done[d].session!=null && S.done[d].session!==4; }).length;
     return {step:Math.floor(n/8),frac:(n%8)/8,unit:'sesiones',lost:0,left:8-(n%8),summit:false};
   }
   var lost=Math.max(0,p.weight-latestWeight());
@@ -1089,7 +1137,7 @@ function renderOnboarding(){
   } else if(step===4){
     h+='<h2 class="disp">¿Cuántos días a la semana?</h2><div class="chips" style="margin-bottom:14px">';
     [3,4,5,6].forEach(function(d){ h+='<button class="chip '+(draft.days===d?'on':'')+'" data-a="days" data-v="'+d+'">'+d+' días</button>'; });
-    h+='</div><div class="callout"><b>Tu ciclo:</b> Jalón, Empuje, Pierna y Descanso activo. Sigues el orden, sin importar el día de la semana: al terminar el descanso activo, vuelves al Jalón.</div>';
+    h+='</div><div class="callout"><b>Tu semana:</b> pesas en los días que elijas, descanso activo (solo cardio) o descanso total en los demás, y el domingo siempre descansas. Si un día se complica, lo cambias por otro desde tu Rutina.</div>';
   } else if(step===5){
     var L=[['pollo','Pollo'],['res','Res'],['cerdo','Cerdo'],['pescado','Pescado y atún'],['huevo','Huevo'],['lacteo','Lácteos'],['veg','Legumbres y tofu']];
     h+='<h2 class="disp">¿Qué te gusta comer?</h2><div class="chips" style="margin-bottom:12px">';
@@ -1185,7 +1233,7 @@ function viewHoy(){
   var lv = si.step>=1 ? levelOf(si.step) : null;
   var fn=firstName();
   if(fn) h+='<h2 class="disp" style="font-size:30px;margin:4px 0 10px">Hola, '+esc(fn)+' 👋</h2>';
-  h+=motivCard()+missBanner()+renewCard()+commitCard();
+  h+=motivCard()+missBanner()+sessBanner()+renewCard()+commitCard();
   h+='<div class="card"><div class="row sp" style="align-items:flex-end"><div>';
   if(si.step>=1) h+='<div class="big disp">Peldaño '+si.step+'</div><div class="lv disp">'+esc(lv[0])+'</div>';
   else h+='<div class="lv disp">Al pie de la escalera</div><div class="muted">'+(si.unit==='kg'?'Baja tu primer kilo para subir el primer peldaño.':'Completa 8 sesiones para subir el primer peldaño.')+'</div>';
@@ -1194,13 +1242,13 @@ function viewHoy(){
   else h+='<p class="small muted">Te faltan <b class="mus">'+si.left+' sesiones</b> para el peldaño '+(si.step+1)+'.</p>';
   h+='</div>';
 
-  var cy=CYCLE[S.cycleIdx];
+  var pd=(ui.tab==='hoy' && ui.dayView)?ui.dayView:todayIso(), pl=dayPlan(pd), cy=cyc(pl);
   var doneToday = rec.session!=null;
-  h+='<div class="card"><h3>Hoy toca</h3><div class="disp" style="font-size:38px;margin:6px 0 2px;color:var(--mustard)">Día '+(S.cycleIdx+1)+': '+cy.n+'</div><p class="muted" style="margin-bottom:12px">'+cy.d+'</p>'+
-     '<div class="row"><button class="btn alt" data-a="opencycle" data-v="'+S.cycleIdx+'" style="flex:1">Ver ejercicios</button>'+
-     '<button class="btn '+(doneToday?'ghost':'')+'" data-a="done" style="flex:1">'+(doneToday?'Deshacer':'Marcar hecha')+'</button></div>';
-  if(doneToday) h+='<p class="small mus" style="margin-top:10px">Sesión de hoy registrada: '+CYCLE[rec.session].n+'.</p>';
-  h+='</div>';
+  h+='<div class="card"><h3>'+(ui.dayView?'Ese día tocaba':'Hoy toca')+'</h3><div class="disp" style="font-size:38px;margin:6px 0 2px;color:var(--mustard)">'+esc(cy.n)+'</div><p class="muted" style="margin-bottom:12px">'+cy.d+'</p>'+
+     '<div class="row">'+(pl===4?'':'<button class="btn alt" data-a="opencycle" data-v="'+pl+'" style="flex:1">Ver ejercicios</button>')+
+     '<button class="btn '+(doneToday?'ghost':'')+'" data-a="done" style="flex:1">'+(doneToday?'Deshacer':(pl===4?'Hoy descansé':'Marcar hecha'))+'</button></div>';
+  if(doneToday) h+='<p class="small mus" style="margin-top:10px">Registrado: '+cyc(rec.session).n+'.</p>';
+  h+='<button type="button" class="chip" style="margin-top:10px" data-a="goWeek">Ver mi semana</button></div>';
 
   var pct=Math.min(100,Math.round(rec.water/PLAN.cups*100));
   h+='<div class="card"><div class="row sp"><h3>Hábitos de hoy</h3>'+(dayWon(rec)?'<span class="badge">Día ganado</span>':'')+'</div>'+
@@ -1265,8 +1313,8 @@ function lastLogText(name){
 function askMsg(){
   var ex=ui.askEx;
   if(ex) return 'Hola '+CONTACT_NAME+', tengo una duda de '+ex+lastLogText(ex)+'.';
-  var cy=CYCLE[S.cycleIdx];
-  return 'Hola '+CONTACT_NAME+', tengo una duda de cargas o técnica en mi sesión de hoy (Día '+(S.cycleIdx+1)+': '+cy.n+').';
+  var pl=dayPlan(todayIso()), cy=cyc(pl);
+  return pl>=3 ? 'Hola '+CONTACT_NAME+', tengo una duda de cargas o técnica.' : 'Hola '+CONTACT_NAME+', tengo una duda de cargas o técnica en mi sesión de hoy ('+cy.n+').';
 }
 function askModal(){
   if(!ui.ask) return '';
@@ -1280,17 +1328,19 @@ function askModal(){
   return h+'<p class="small muted" style="margin-top:10px">Orientación general, no sustituye a tu coach ni a un médico.</p></div></div>';
 }
 function viewRutina(){
-  var p=S.profile, wk=ui.week||curWeek(), ph=phaseOf(wk), cd=(ui.cday==null?S.cycleIdx:ui.cday), h='';
+  var p=S.profile, wk=ui.week||curWeek(), ph=phaseOf(wk), sd=selDay(), cd=dayPlan(sd), h='';
   h+='<h2 class="disp">Rutina</h2>'+
      '<div class="card"><div class="row sp"><button class="btn ghost sm" data-a="wkn" data-v="-1" aria-label="Semana anterior">&#8249;</button><div style="text-align:center"><div class="disp" style="font-size:30px;color:var(--mustard);white-space:nowrap">Semana '+wk+'</div><div class="small muted">'+placeName(p.place)+'</div></div><button class="btn ghost sm" data-a="wkn" data-v="1" aria-label="Semana siguiente">&#8250;</button></div>'+
      '<p class="small" style="margin-top:10px">'+PHASES[ph]+'.</p></div>';
   h+='<div class="callout"><b>El cardio es el complemento de tus pesas.</b> Al terminar cada sesión de pesas, haz '+PLAN.cardioPer+' minutos de caminadora o caminata en inclinación. En el Descanso activo, '+PLAN.cardioDay+' minutos. Con '+p.days+' sesiones a la semana suman unos <b>'+weekCardio()+' minutos</b> de cardio.</div>';
-  h+='<div class="tabs4" role="tablist">';
-  CYCLE.forEach(function(c,i){ h+='<button role="tab" aria-selected="'+(cd===i)+'" class="'+(cd===i?'on':'')+'" data-a="cday" data-v="'+i+'">Día '+(i+1)+'<br>'+c.n+'</button>'; });
-  h+='</div>';
+  h+=weekBoxes(sd);
+  if(cd===4){
+    h+='<div class="card"><h3>Descanso total</h3><p class="muted">'+OFFC.d+' Duerme bien, toma agua y come según tu plan. Mañana sigues.</p></div>'+askModal();
+    return h;
+  }
   var isDescanso=(CYCLE[cd].k==='descanso');
   h+='<button type="button" class="btn alt block" style="margin-bottom:12px" data-a="askOpen">💬 ¿Dudas de cargas o técnica?</button>';
-  h+='<p class="small muted" style="margin-bottom:12px">'+CYCLE[cd].d+'. Esta semana haces <b class="mus">'+p.days+' sesiones</b> siguiendo el orden del ciclo.</p>';
+  h+='<p class="small muted" style="margin-bottom:12px">'+CYCLE[cd].d+'. Esta semana: <b class="mus">'+p.days+' días con pesas</b>.</p>';
 
   var n=1;
   /* Paso 1: siempre calentamiento */
@@ -1539,7 +1589,7 @@ function viewAvance(){
   h+='<div class="card"><h3 style="margin-bottom:8px">Últimos 7 días</h3><div class="wide"><table class="tbl"><thead><tr><th>Día</th><th>Sesión</th><th>Agua</th><th>Sueño</th><th>Día</th></tr></thead><tbody>';
   for(var i=0;i<7;i++){
     var d=addDays(todayIso(),-i), r=S.done[d];
-    h+='<tr><td>'+fmtDate(d)+'</td><td>'+(r&&r.session!=null?CYCLE[r.session].n:'-')+'</td><td>'+(r&&r.water?r.water+' / '+PLAN.cups:'-')+'</td><td>'+(r&&r.sleep?r.sleep+' h':'-')+'</td><td>'+(dayWon(r)?'Ganado':'-')+'</td></tr>';
+    h+='<tr><td>'+fmtDate(d)+'</td><td>'+(r&&r.session!=null?cyc(r.session).n:'-')+'</td><td>'+(r&&r.water?r.water+' / '+PLAN.cups:'-')+'</td><td>'+(r&&r.sleep?r.sleep+' h':'-')+'</td><td>'+(dayWon(r)?'Ganado':'-')+'</td></tr>';
   }
   h+='</tbody></table></div></div>';
 
@@ -1650,7 +1700,7 @@ function planBlocks(wk){
   B.push({t:'p',text:'Calorías: '+PLAN.kcal+' kcal | Proteína: '+PLAN.protein+' g | Carbohidratos: '+PLAN.carbs+' g | Grasas: '+PLAN.fat+' g'});
   B.push({t:'p',text:'Agua: '+PLAN.waterL.toFixed(1)+' L ('+PLAN.cups+' vasos) | Fibra: '+PLAN.fiber+' g | Sueño: 7 a 9 horas'});
   B.push({t:'h2',text:'Rutina: '+PHASES[ph]});
-  B.push({t:'p',text:'Ciclo: Jalón, Empuje, Pierna, Descanso activo. Sigue el orden, sin importar el día de la semana. Esta semana: '+p.days+' sesiones. Cardio: '+PLAN.cardioPer+' min al terminar las pesas y '+PLAN.cardioDay+' min en el descanso activo (unos '+weekCardio()+' min a la semana).'});
+  B.push({t:'p',text:'Semana: Jalón, Empuje y Pierna con pesas, descanso activo con cardio y descanso total el domingo. Esta semana: '+p.days+' días con pesas. Cardio: '+PLAN.cardioPer+' min al terminar las pesas y '+PLAN.cardioDay+' min en el descanso activo (unos '+weekCardio()+' min a la semana).'});
   CYCLE.forEach(function(c,i){
     B.push({t:'h3',text:'Día '+(i+1)+': '+c.n+' ('+c.d+')'});
     var isDesc=(c.k==='descanso'), step=1;
@@ -2330,7 +2380,7 @@ function finishOnboarding(){
     likes:draft.likes.slice(),veg:draft.veg,dislikes:draft.dislikes.trim(),powder:draft.powder,fiber:draft.fiber,
     start:todayIso()
   };
-  S.cycleIdx=0; S.done={}; S.weights={}; S.levelSeen=0; S.summitSeen=false;
+  S.cycleIdx=0; S.swap={}; S.miss={}; S.done={}; S.weights={}; S.levelSeen=0; S.summitSeen=false;
   S.commit={start:todayIso(),end:addDays(todayIso(),COMMIT_DAYS-1),signedOn:todayIso(),sig:draft.sig||null}; draft.sig='';
   persist(); ui.tab='hoy'; ui.week=null; ui.cday=null; ui.welcome=true; render(); window.scrollTo(0,0);
 }
@@ -2413,7 +2463,44 @@ var H = {
   pow:function(el){ draft.powder=el.checked; },
   fib:function(el){ draft.fiber=el.checked; },
   tab:function(el){ ui.dayView=null; ui.tab=el.dataset.v; ui.confirmReset=false; render(); window.scrollTo(0,0); },
-  opencycle:function(el){ ui.cday=Number(el.dataset.v); ui.tab='rutina'; render(); window.scrollTo(0,0); },
+  opencycle:function(el){ ui.selDate=(ui.dayView||todayIso()); ui.swapFrom=null; ui.tab='rutina'; render(); window.scrollTo(0,0); },
+  goWeek:function(){ ui.selDate=todayIso(); ui.swapFrom=null; ui.tab='rutina'; render(); window.scrollTo(0,0); },
+  selDay:function(el){
+    var d=el.dataset.v;
+    if(ui.swapFrom){
+      var a=ui.swapFrom;
+      if(d===a){ ui.swapFrom=null; render(); return; }
+      var t=todayIso();
+      if(d<t){ toast('Solo puedes cambiar hoy y los días que vienen.'); return; }
+      var pa=dayPlan(a), pb=dayPlan(d);
+      if(pa===pb){ toast('Esos dos días tienen lo mismo.'); return; }
+      if(!S.swap) S.swap={};
+      S.swap[a]=pb; S.swap[d]=pa; ui.swapFrom=null; ui.selDate=d; persist(); render();
+      toast('Listo: cambiaste '+DOWL[dowIdx(a)]+' por '+DOWL[dowIdx(d)]+'.');
+      return;
+    }
+    ui.selDate=d; render();
+  },
+  swapStart:function(){
+    var d=selDay(), r=S.done[d];
+    if(r && r.session!=null){ toast('Ese día ya está registrado.'); return; }
+    ui.swapFrom=d; render();
+  },
+  swapCancel:function(){ ui.swapFrom=null; render(); },
+  sessToday:function(){
+    var t=todayIso(), y=addDays(t,-1), py=dayPlan(y), pt=dayPlan(t);
+    if(!S.swap) S.swap={}; if(!S.miss) S.miss={};
+    S.miss[y]='m'; S.swap[t]=py;
+    var msg='Listo: hoy haces '+cyc(py).n+'.';
+    if(pt<=2){
+      var tgt=null, off=null;
+      for(var i=1;i<=6;i++){ var d=addDays(t,i); if(weekStartDate(d)!==weekStartDate(t)) break; var pd=dayPlan(d); if(pd===3 && !tgt) tgt=d; if(pd===4 && dowIdx(d)<6 && !off) off=d; }
+      var to=tgt||off;
+      if(to) S.swap[to]=pt; else msg+=' Se salta '+cyc(pt).n+' para respetar tu domingo.';
+    }
+    persist(); render(); toast(msg);
+  },
+  sessSkip:function(){ if(!S.miss) S.miss={}; S.miss[addDays(todayIso(),-1)]='s'; persist(); render(); },
   cday:function(el){ ui.cday=Number(el.dataset.v); render(); },
   wkn:function(el){ var w=(ui.week||curWeek())+Number(el.dataset.v); ui.week=Math.min(Math.max(12,curWeek()),Math.max(1,w)); render(); },
   dday:function(el){ ui.dday=Number(el.dataset.v); render(); },
@@ -2468,8 +2555,9 @@ var H = {
   },
   done:function(){
     var r=dayRec();
-    if(r.session!=null){ S.cycleIdx=r.session; r.session=null; }
-    else { r.session=S.cycleIdx; S.cycleIdx=(S.cycleIdx+1)%4; toast('✅ Sesión de hoy registrada.'); }
+    var dd=(ui.tab==='hoy' && ui.dayView)?ui.dayView:todayIso();
+    if(r.session!=null){ r.session=null; }
+    else { r.session=dayPlan(dd); toast(r.session===4?'😴 Descanso registrado.':'✅ Sesión registrada.'); }
     persist(); render();
     if(r.session!=null){ checkLevelUp(); checkStreak(); }
   },
