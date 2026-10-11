@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-10i';
+window.AG_VERSION='2026-10-11e';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -141,7 +141,7 @@ h3{font-size:18px;font-weight:700}
 label.f{display:block;margin-bottom:12px;font-size:14px;color:var(--muted)}
 label.f input{display:block;width:100%;margin-top:4px;min-height:48px;padding:8px 12px;border-radius:8px;border:1.5px solid var(--line);background:#000;color:var(--text);font-size:18px}
 label.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);margin:12px 0}
-label.chk input{width:22px;height:22px;margin-top:2px;accent-color:var(--red)}
+label.chk input{flex:none;width:22px;height:22px;margin-top:2px;accent-color:var(--red)}
 .err{color:var(--red-hi);font-weight:600;margin:8px 0}
 .prog{display:flex;gap:6px;margin:4px 0 18px}
 .prog b{flex:1;height:5px;border-radius:3px;background:var(--line)}
@@ -715,31 +715,31 @@ function nutsOk(){
 }
 function buildMeal(t,K,P){
   var pr=F[t.pr], ca=t.ca?F[t.ca]:null, ft=t.fat?F[t.fat]:null, fx=t.fx||{k:0,p:0,text:''};
-  var lines=[], kcal=0, prot=0, n, g;
+  var lines=[], items=[], kcal=0, prot=0, n, g;
   var sc=Math.max(1,PLAN.kcal/2000);
   var pTarget=Math.max(10,(P-(fx.p||0))*0.92);
   if(pr.u1){
     n=Math.round(pTarget/pr.p); n=Math.max(pr.min||1,n); if(pr.max) n=Math.min(pr.max,n);
-    lines.push(qty(pr,n)); kcal+=n*pr.k; prot+=n*pr.p;
+    lines.push(qty(pr,n)); items.push({k:t.pr,n:n}); kcal+=n*pr.k; prot+=n*pr.p;
   } else {
     g=Math.max(60,Math.round(pTarget/pr.p*10)*10); g=Math.min(g,Math.round((pr.gmax||300)*Math.sqrt(sc)/10)*10);
-    lines.push(g+' g de '+pr.l); kcal+=g*pr.k/100; prot+=g*pr.p/100;
+    lines.push(g+' g de '+pr.l); items.push({k:t.pr,g:g}); kcal+=g*pr.k/100; prot+=g*pr.p/100;
   }
-  if(ft){ lines.push(qty(ft,1)); kcal+=ft.k; }
-  if(fx.text){ lines.push(fx.text); kcal+=fx.k||0; prot+=fx.p||0; }
+  if(ft){ lines.push(qty(ft,1)); items.push({k:t.fat,n:1}); kcal+=ft.k; }
+  if(fx.text){ lines.push(fx.text); items.push({fx:fx.text}); kcal+=fx.k||0; prot+=fx.p||0; }
   var vegK = t.veg ? 40 : 0;
   if(ca){
     var rem=K-kcal-vegK;
-    if(ca.u1){ n=Math.max(1,Math.round(rem/ca.k)); n=Math.min(Math.round((ca.max||6)*sc),n); lines.splice(1,0,qty(ca,n)); kcal+=n*ca.k; prot+=n*ca.p; }
-    else { g=Math.max(30,Math.round(rem/ca.k*10)*10); g=Math.min(g,Math.round((ca.gmax||300)*sc/10)*10); lines.splice(1,0,g+' g de '+ca.l); kcal+=g*ca.k/100; prot+=g*ca.p/100; }
+    if(ca.u1){ n=Math.max(1,Math.round(rem/ca.k)); n=Math.min(Math.round((ca.max||6)*sc),n); lines.splice(1,0,qty(ca,n)); items.push({k:t.ca,n:n}); kcal+=n*ca.k; prot+=n*ca.p; }
+    else { g=Math.max(30,Math.round(rem/ca.k*10)*10); g=Math.min(g,Math.round((ca.gmax||300)*sc/10)*10); lines.splice(1,0,g+' g de '+ca.l); items.push({k:t.ca,g:g}); kcal+=g*ca.k/100; prot+=g*ca.p/100; }
   }
   var rem2=K-kcal-vegK;
   if(rem2>=70){
-    if(t.m==='x' && nutsOk()){ var al=F.almendras; n=Math.min(al.max,Math.round(rem2/al.k)); if(n>=1){ lines.push(qty(al,n)); kcal+=n*al.k; prot+=n*al.p; } }
-    else { g=Math.min(250,Math.round(rem2*2/10)*10); if(g>=50){ lines.push(g+' g de fruta picada'+(t.m==='x'?'':' de postre')); kcal+=g*0.5; } }
+    if(t.m==='x' && nutsOk()){ var al=F.almendras; n=Math.min(al.max,Math.round(rem2/al.k)); if(n>=1){ lines.push(qty(al,n)); items.push({k:'almendras',n:n}); kcal+=n*al.k; prot+=n*al.p; } }
+    else { g=Math.min(250,Math.round(rem2*2/10)*10); if(g>=50){ lines.push(g+' g de fruta picada'+(t.m==='x'?'':' de postre')); items.push({k:'fruta',g:g}); kcal+=g*0.5; } }
   }
-  if(t.veg) lines.push(t.veg+' (a libre)');
-  return {name:t.n,lines:lines,kcal:Math.round(kcal+vegK),prot:Math.round(prot)};
+  if(t.veg){ lines.push(t.veg+' (a libre)'); items.push({veg:t.veg}); }
+  return {name:t.n,lines:lines,items:items,kcal:Math.round(kcal+vegK),prot:Math.round(prot)};
 }
 function dayMenu(dayIdx,week){
   var order=['d','c','n','x'], out=[];
@@ -1019,7 +1019,7 @@ function addExtra(ex){ var L=myExtras(), k=logKey(ex.n+ex.grp); if(!L.some(funct
 /* ------------------------------------------------------------------ */
 /* Cuestionario                                                         */
 /* ------------------------------------------------------------------ */
-var draft = {accessCode:'',name:'',sex:'h',age:'',height:'',weight:'',goal:'',ok:false,priority:'bajar',place:'gym',days:4,likes:[],veg:false,dislikes:'',powder:false,fiber:false,experience:'intermedio'};
+var draft = {accessCode:'',wa:'',name:'',sex:'h',age:'',height:'',weight:'',goal:'',ok:false,priority:'bajar',place:'gym',days:4,likes:[],veg:false,dislikes:'',powder:false,fiber:false,experience:'intermedio'};
 var step = 0, formErr = '';
 var accessErr = '';
 /* Código de acceso: formato AG001-AG999. Es un filtro de formato, no una validación real contra pagos
@@ -1060,6 +1060,8 @@ function renderOnboarding(){
       '<div class="grid2"><label class="f">Edad<input type="number" inputmode="numeric" data-in="age" value="'+esc(draft.age)+'"></label>'+
       '<label class="f">Estatura (cm)<input type="number" inputmode="numeric" data-in="height" value="'+esc(draft.height)+'"></label></div>'+
       '<label class="f">Peso actual (kg)<input type="number" inputmode="decimal" step="0.1" data-in="weight" value="'+esc(draft.weight)+'"></label>'+
+      '<label class="f">Tu WhatsApp (opcional)<input type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" data-in="wa" value="'+esc(draft.wa)+'" placeholder="10 dígitos"></label>'+
+      '<p class="small muted" style="margin:-4px 0 12px">Es para mandarte tu lista de súper. Cada sábado a las 8 am la app te la tiene lista para enviarla a tu WhatsApp con un toque. Si no lo pones, la lista igual está en la sección Dieta.</p>'+
       '<label class="chk"><input type="checkbox" data-in="ok" '+(draft.ok?'checked':'')+'><span>Tengo 18 años o más y entiendo que esto no sustituye a un médico ni a un nutriólogo. Si estoy embarazada, en lactancia o tengo una condición médica, consultaré primero.</span></label>';
   } else if(step===2){
     var O=[['bajar','Bajar de peso','Un ritmo seguro, con curva semana a semana.'],['definir','Definir y ganar músculo','Baja grasa despacio y sube la fuerza.'],['mantener','Mantenerme','Mismo peso, más fuerza y mejores hábitos.']];
@@ -1113,6 +1115,7 @@ function validateStep(){
     if(!(a>=18&&a<=80)) return 'La edad debe estar entre 18 y 80 años. Esta app es solo para adultos.';
     if(!(hh>=120&&hh<=220)) return 'Escribe tu estatura en centímetros, entre 120 y 220.';
     if(!(w>=35&&w<=250)) return 'Escribe tu peso actual en kilos, entre 35 y 250.';
+    var wd=String(draft.wa||'').replace(/\D/g,''); if(wd && wd.length!==10) return 'Escribe tu WhatsApp a 10 dígitos, o déjalo vacío.';
     if(!draft.ok) return 'Marca la casilla para continuar.';
   }
   if(step===2 && draft.priority==='bajar'){
@@ -1185,7 +1188,7 @@ function viewHoy(){
   var lv = si.step>=1 ? levelOf(si.step) : null;
   var fn=firstName();
   if(fn) h+='<h2 class="disp" style="font-size:30px;margin:4px 0 10px">Hola, '+esc(fn)+' 👋</h2>';
-  h+=motivCard()+missBanner()+renewCard()+commitCard();
+  h+=motivCard()+superCard()+missBanner()+renewCard()+commitCard();
   h+='<div class="card"><div class="row sp" style="align-items:flex-end"><div>';
   if(si.step>=1) h+='<div class="big disp">Peldaño '+si.step+'</div><div class="lv disp">'+esc(lv[0])+'</div>';
   else h+='<div class="lv disp">Al pie de la escalera</div><div class="muted">'+(si.unit==='kg'?'Baja tu primer kilo para subir el primer peldaño.':'Completa 8 sesiones para subir el primer peldaño.')+'</div>';
@@ -1443,8 +1446,10 @@ function dlButton(label,act){
 }
 
 function viewDieta(){
+  if(ui.superOpen) return viewSuper();
   var p=S.profile, wk=ui.week||curWeek(), h='';
   h+='<h2 class="disp">Dieta</h2>';
+  h+='<button class="btn block" style="margin:0 0 14px" data-a="superOpen">🛒 Mi lista de súper de la semana</button>';
   h+='<div class="card"><div class="small muted">Tu meta diaria</div><div class="kcal disp">'+PLAN.kcal+'<span class="small muted" style="font-family:Barlow,sans-serif;font-weight:500"> kcal</span></div>'+
      '<div class="macros"><div><b>'+PLAN.protein+' g</b><span class="small muted">Proteína</span></div><div><b>'+PLAN.carbs+' g</b><span class="small muted">Carbohidratos</span></div><div><b>'+PLAN.fat+' g</b><span class="small muted">Grasas</span></div></div>'+
      '<p class="small muted" style="margin-top:12px">Calculado con la fórmula Mifflin-St Jeor: tu cuerpo gasta unas '+PLAN.tdee+' kcal al día'+(PLAN.mode==='bajar'?'; el déficit está limitado para que bajes como máximo 1% de tu peso por semana':'')+'. '+esc(PLAN.note)+'</p></div>';
@@ -2330,6 +2335,7 @@ function finishOnboarding(){
     likes:draft.likes.slice(),veg:draft.veg,dislikes:draft.dislikes.trim(),powder:draft.powder,fiber:draft.fiber,
     start:todayIso()
   };
+  S.waSelf=String(draft.wa||'').replace(/\D/g,'');
   S.cycleIdx=0; S.done={}; S.weights={}; S.levelSeen=0; S.summitSeen=false;
   S.commit={start:todayIso(),end:addDays(todayIso(),COMMIT_DAYS-1),signedOn:todayIso(),sig:draft.sig||null}; draft.sig='';
   persist(); ui.tab='hoy'; ui.week=null; ui.cday=null; ui.welcome=true; render(); window.scrollTo(0,0);
@@ -2370,7 +2376,21 @@ var H = {
   askClose:function(){ ui.ask=false; ui.askEx=null; render(); },
   shopSoon:function(){ ui.shop=true; render(); window.scrollTo(0,0); },
   shopClose:function(){ ui.shop=false; render(); window.scrollTo(0,0); },
-  motivClose:function(){ ui.motivN=0; render(); },
+  superOpen:function(){ ui.superOpen=true; ui.superWk=superDefaultWeek(); ui.tab='dieta'; render(); window.scrollTo(0,0); },
+  superBack:function(){ ui.superOpen=false; render(); window.scrollTo(0,0); },
+  superWk:function(el){ ui.superWk=Number(el.dataset.v); render(); },
+  superChk:function(el){ var wk=ui.superWk||superDefaultWeek(); if(!S.superChk) S.superChk={}; if(!S.superChk[wk]) S.superChk[wk]={}; if(el.checked) S.superChk[wk][el.dataset.v]=1; else delete S.superChk[wk][el.dataset.v]; persist(); },
+  superWa:function(){ var wk=ui.superWk||superDefaultWeek(); superMarkSeen(); window.open(superWaLink(wk),'_blank'); render(); },
+  superWaHoy:function(){ superMarkSeen(); window.open(superWaLink(superDefaultWeek()),'_blank'); render(); },
+  superClose:function(){ superMarkSeen(); render(); },
+  superPdf:function(){ superPdf(false); },
+  superShare:function(){ superPdf(true); },
+  superSaveWa:function(){
+    var el=document.getElementById('superWaIn'), d=String(el?el.value:'').replace(/\D/g,'');
+    if(d && d.length!==10){ toast('Escribe tu WhatsApp a 10 dígitos.'); return; }
+    S.waSelf=d; persist(); toast(d?'WhatsApp guardado':'WhatsApp borrado'); render();
+  },
+  motivClose:function(){ S.motivClosed=todayIso(); persist(); ui.motivN=0; render(); },
   howtoDone:function(){ ui.howto=false; S.howtoSeen=true; persist(); render(); window.scrollTo(0,0); },
   saveDay:function(){
     S.lastSave=Date.now(); S.lastSaveDay=todayIso(); persist();
@@ -2412,7 +2432,7 @@ var H = {
   veg:function(el){ draft.veg=el.checked; },
   pow:function(el){ draft.powder=el.checked; },
   fib:function(el){ draft.fiber=el.checked; },
-  tab:function(el){ ui.dayView=null; ui.tab=el.dataset.v; ui.confirmReset=false; render(); window.scrollTo(0,0); },
+  tab:function(el){ ui.dayView=null; ui.superOpen=false; ui.tab=el.dataset.v; ui.confirmReset=false; render(); window.scrollTo(0,0); },
   opencycle:function(el){ ui.cday=Number(el.dataset.v); ui.tab='rutina'; render(); window.scrollTo(0,0); },
   cday:function(el){ ui.cday=Number(el.dataset.v); render(); },
   wkn:function(el){ var w=(ui.week||curWeek())+Number(el.dataset.v); ui.week=Math.min(Math.max(12,curWeek()),Math.max(1,w)); render(); },
@@ -2591,13 +2611,164 @@ function setBearFavicon(){
     document.head.appendChild(link);
   }catch(e){}
 }
+
+/* ------------------------------------------------------------------ */
+/* Lista de súper: suma los ingredientes de los 7 días del menú y los   */
+/* convierte a cantidades de compra (en crudo, redondeadas hacia arriba)*/
+/* ------------------------------------------------------------------ */
+var SUPER_AISLES=[['carne','Carnes, pollo y pescado'],['lacteo','Huevo, lácteos y refrigerados'],['fruver','Frutas y verduras'],['tort','Tortillas y pan'],['desp','Despensa']];
+/* raw: de cocido a crudo (ej. el pollo pierde ~25% al cocinarse) */
+var SUPER_BUY={
+  pollo:{a:'carne',n:'Pechuga de pollo',raw:1/0.75}, res:{a:'carne',n:'Res magra (bistec o molida)',raw:1/0.7},
+  cerdo:{a:'carne',n:'Lomo de cerdo',raw:1/0.7}, pescado:{a:'carne',n:'Filete de pescado blanco',raw:1/0.8},
+  panela:{a:'lacteo',n:'Queso panela',raw:1}, requeson:{a:'lacteo',n:'Requesón',raw:1}, yogur:{a:'lacteo',n:'Yogur griego natural sin azúcar',raw:1},
+  tofu:{a:'lacteo',n:'Tofu firme',raw:1},
+  lenteja:{a:'desp',n:'Lenteja (seca)',raw:1/2.5}, frijol:{a:'desp',n:'Frijol (seco)',raw:1/2.5}, arroz:{a:'desp',n:'Arroz (crudo)',raw:1/2.8},
+  avena:{a:'desp',n:'Avena en hojuelas',raw:1},
+  papa:{a:'fruver',n:'Papa',raw:1}, camote:{a:'fruver',n:'Camote',raw:1}, fruta:{a:'fruver',n:'Fruta de temporada (papaya, melón, manzana, fresa)',raw:1}
+};
+var SUPER_FX={'100 g de fresa o papaya':[['fruta',100]],'100 g de fruta':[['fruta',100]],'1/2 plátano':[['platano',0.5]],'1/4 taza de frijoles':[['frijol',45]]};
+/* Verduras "a libre": se listan con el número de comidas en que aparecen */
+var SUPER_VEG=[
+  [/cebolla morada/,'Cebolla morada'],[/cebolla(?! morada)/,'Cebolla blanca'],[/jitomate/,'Jitomate'],[/chile/,'Chile (serrano o jalapeño)'],
+  [/espinaca/,'Espinaca'],[/champi/,'Champiñones'],[/nopal/,'Nopales'],[/lechuga/,'Lechuga'],[/brocoli/,'Brócoli'],[/calabacit/,'Calabacita'],
+  [/zanahoria/,'Zanahoria'],[/pepino/,'Pepino'],[/apio/,'Apio'],[/limon/,'Limón'],[/cilantro/,'Cilantro'],[/jicama/,'Jícama'],
+  [/verduras salteadas/,'Verduras surtidas para saltear']
+];
+function superWeekOf(d){ return Math.max(1, Math.floor(daysBetween(S.profile.start, d)/7)+1); }
+function superDefaultWeek(){
+  var d=new Date(), dow=d.getDay();                      // sábado y domingo: la lista es para la semana que empieza el lunes
+  if(dow===6||dow===0){ var mon=addDays(todayIso(), dow===6?2:1); return superWeekOf(mon); }
+  return curWeek();
+}
+function superUpKg(g){ if(g>=1000) return (Math.ceil(g/100)/10).toFixed(1)+' kg'; return (Math.ceil(g/50)*50)+' g'; }
+function superList(wk){
+  var acc={}, veg={}, extra={};
+  for(var di=0; di<7; di++){
+    dayMenu(di,wk).forEach(function(m){
+      (m.items||[]).forEach(function(it){
+        if(it.veg){
+          var sv=norm(it.veg), hit=false;
+          SUPER_VEG.forEach(function(v){ if(v[0].test(sv)){ veg[v[1]]=(veg[v[1]]||0)+1; hit=true; } });
+          if(/ensalada/.test(sv) && !/ensalada de /.test(sv)){ veg['Lechuga']=(veg['Lechuga']||0)+1; hit=true; }
+          if(/salsa/.test(sv)) extra.salsa=(extra.salsa||0)+1;
+          return;
+        }
+        if(it.fx){ (SUPER_FX[it.fx]||[]).forEach(function(f){ acc[f[0]]=(acc[f[0]]||0)+f[1]; }); return; }
+        var k=(it.k==='claras')?'huevo':it.k;
+        acc[k]=(acc[k]||0)+(it.g!=null?it.g:it.n);
+      });
+    });
+  }
+  var out={}; SUPER_AISLES.forEach(function(a){ out[a[0]]=[]; });
+  function add(a,id,name,q,d){ out[a].push({id:id,n:name,q:q,d:d||''}); }
+  Object.keys(acc).forEach(function(k){
+    var v=acc[k], b=SUPER_BUY[k];
+    if(b){ add(b.a,k,b.n,superUpKg(v*b.raw), b.raw!==1?'Ya cocido rinde unos '+superUpKg(v):''); return; }
+    if(k==='huevo'){ add('lacteo',k,'Huevo',Math.ceil(v)+' piezas', v>30?'Un cartón de 30 y lo que falte':''); }
+    else if(k==='atun'){ add('desp',k,'Atún en agua',Math.ceil(v/100)+' latas','De unos 140 g cada una'); }
+    else if(k==='tortilla'){ add('tort',k,'Tortillas de maíz',Math.ceil(v)+' piezas','Aprox. '+(Math.ceil(v/33*4)/4).toFixed(2).replace(/0$/,'')+' kg'); }
+    else if(k==='pan'){ add('tort',k,'Pan integral',Math.ceil(v)+' rebanadas', Math.ceil(v/20)+' paquete'+(Math.ceil(v/20)>1?'s':'')); }
+    else if(k==='aguacate'){ add('fruver',k,'Aguacate',Math.ceil(v/4)+' pieza'+(Math.ceil(v/4)>1?'s':''),''); }
+    else if(k==='platano'){ add('fruver',k,'Plátano',Math.ceil(v)+' pieza'+(Math.ceil(v)>1?'s':''),''); }
+    else if(k==='almendras'){ add('desp',k,'Almendras',superUpKg(v*12),''); }
+    else if(k==='aceite'){ add('desp',k,'Aceite de oliva',Math.ceil(v)+' cucharaditas','Revisa que te alcance; una botella de 500 ml rinde para muchas semanas'); }
+    else if(k==='polvo'){ add('desp',k,'Proteína en polvo',Math.ceil(v)+' scoops','Revisa que te alcance para la semana'); }
+  });
+  Object.keys(veg).sort().forEach(function(n){ add('fruver','v_'+norm(n).replace(/\W+/g,'_'),n,'a libre','Para '+veg[n]+' comida'+(veg[n]>1?'s':'')); });
+  if(extra.salsa) add('desp','salsa','Salsa (casera o de frasco)','al gusto','Para '+extra.salsa+' comida'+(extra.salsa>1?'s':''));
+  out.fruver.sort(function(a,b){ return (a.q==='a libre')-(b.q==='a libre'); });
+  return out;
+}
+function superText(wk){
+  var L=superList(wk), nm=nameCap(), t=(nm?nm+', tu':'Tu')+' lista de súper de la semana '+wk+' 🛒\n';
+  SUPER_AISLES.forEach(function(a){
+    if(!L[a[0]].length) return;
+    t+='\n*'+a[1]+'*\n';
+    L[a[0]].forEach(function(i){ t+='• '+i.n+': '+i.q+(i.q==='a libre'&&i.d?' ('+i.d.toLowerCase()+')':'')+'\n'; });
+  });
+  return t+'\nCantidades para comprar en crudo, ya calculadas para tus porciones. '+BRAND;
+}
+function superWaLink(wk){
+  var d=String(S.waSelf||'').replace(/\D/g,'');
+  return 'https://wa.me/'+(d.length===10?COUNTRY+d:'')+'?text='+encodeURIComponent(superText(wk));
+}
+function superBlocks(wk){
+  var L=superList(wk), B=[];
+  B.push({t:'title',text:'Lista de súper: semana '+wk,sub:(firstName()?nameCap()+' | ':'')+BRAND});
+  B.push({t:'note',text:'Cantidades para comprar en crudo, ya calculadas para las porciones de tu menú de la semana y redondeadas hacia arriba. Las verduras son a libre.'});
+  SUPER_AISLES.forEach(function(a){
+    if(!L[a[0]].length) return;
+    B.push({t:'h2',text:a[1]});
+    L[a[0]].forEach(function(i){ B.push({t:'li',lead:'[  ] '+i.n+':',text:i.q+(i.d?' ('+i.d+')':'')}); });
+  });
+  return B;
+}
+function superPdf(share){
+  var wk=ui.superWk||superDefaultWeek(), name=FP+'_lista_super_semana_'+wk+'.pdf', blob;
+  if(!(window.jspdf && window.jspdf.jsPDF)){ toast('El PDF aún está cargando. Intenta en unos segundos.'); return; }
+  try{ blob=makePDF(superBlocks(wk)); }catch(e){ toast('No se pudo armar el PDF.'); return; }
+  if(share){
+    try{
+      var f=new File([blob],name,{type:'application/pdf'});
+      if(navigator.canShare && navigator.canShare({files:[f]})){ superMarkSeen(); navigator.share({files:[f],title:'Lista de súper semana '+wk}).catch(function(){}); return; }
+    }catch(e){}
+    toast('Tu teléfono no permite compartir el archivo; lo descargamos.');
+  }
+  saveFile(name,blob);
+}
+function canShareFiles(){ try{ return !!(navigator.canShare && window.File && navigator.canShare({files:[new File(['x'],'x.pdf',{type:'application/pdf'})]})); }catch(e){ return false; } }
+function viewSuper(){
+  var cur=curWeek(), wk=ui.superWk||superDefaultWeek(), L=superList(wk), chk=(S.superChk&&S.superChk[wk])||{}, h='';
+  h+='<button class="chip" data-a="superBack" style="margin-bottom:12px">← Dieta</button>';
+  h+='<h2 class="disp">Lista de súper</h2>';
+  h+='<div class="chips" style="margin-bottom:12px" role="tablist">';
+  [cur,cur+1].forEach(function(w){ h+='<button role="tab" class="chip '+(wk===w?'on':'')+'" data-a="superWk" data-v="'+w+'">Semana '+w+(w===cur?' (esta)':' (próxima)')+'</button>'; });
+  h+='</div><p class="small muted" style="margin:0 0 12px">Cantidades para comprar en crudo, ya calculadas para tus porciones de la semana '+wk+' y redondeadas hacia arriba. Palomea mientras compras.</p>';
+  SUPER_AISLES.forEach(function(a){
+    if(!L[a[0]].length) return;
+    h+='<div class="card"><h3 style="margin-bottom:6px">'+esc(a[1])+'</h3>';
+    L[a[0]].forEach(function(i){
+      h+='<label class="chk" style="margin:8px 0"><input type="checkbox" data-a="superChk" data-v="'+esc(i.id)+'" '+(chk[i.id]?'checked':'')+'><span><b style="color:var(--text,#fff)">'+esc(i.n)+'</b>: '+esc(i.q)+(i.d?'<br><span class="small muted">'+esc(i.d)+'</span>':'')+'</span></label>';
+    });
+    h+='</div>';
+  });
+  var d=String(S.waSelf||'');
+  h+='<div class="card"><h3 style="margin-bottom:6px">Mándatela</h3>';
+  h+='<button class="btn block" data-a="superWa" style="margin-bottom:10px">Mandar a '+(d?'mi WhatsApp':'WhatsApp')+'</button>';
+  if(canShareFiles()) h+='<button class="btn alt block" data-a="superShare" style="margin-bottom:10px">Compartir en PDF</button>';
+  h+='<button class="btn ghost block" data-a="superPdf">Descargar PDF</button>';
+  h+='<label class="f" style="margin-top:14px">Tu WhatsApp (opcional)<input id="superWaIn" type="tel" inputmode="numeric" maxlength="14" value="'+esc(d)+'" placeholder="10 dígitos"></label>';
+  h+='<button class="chip" data-a="superSaveWa">Guardar número</button>';
+  h+='<p class="small muted" style="margin-top:10px">Con tu número guardado, el botón abre tu propio chat de WhatsApp con la lista lista para enviar. Cada sábado desde las 8 am te la recordamos al abrir la app.</p></div>';
+  return h;
+}
+/* Recordatorio del sábado: de sábado 8 am a domingo, hasta que la mandas o la cierras */
+function superDueKey(){
+  if(!S.profile) return '';
+  var d=new Date(), dow=d.getDay(), sat;
+  if(dow===6 && d.getHours()>=8) sat=todayIso(); else if(dow===0) sat=addDays(todayIso(),-1); else return '';
+  if(sat<S.profile.start) return '';
+  return S.superSeen===sat ? '' : sat;
+}
+function superMarkSeen(){ var d=new Date(), dow=d.getDay(); if(dow===6) S.superSeen=todayIso(); else if(dow===0) S.superSeen=addDays(todayIso(),-1); persist(); }
+function superCard(){
+  if(!superDueKey()) return '';
+  var wk=superDefaultWeek();
+  return '<div class="card motiv"><div class="row sp" style="align-items:flex-start;gap:10px"><div style="min-width:0;flex:1">'+
+    '<div class="small muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Sábado de súper</div>'+
+    '<div style="font-size:17px;line-height:1.45">🛒 Tu lista de súper de la semana '+wk+' ya está lista.</div>'+
+    '<div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn" data-a="superWaHoy">Mandar a mi WhatsApp</button><button class="btn ghost" data-a="superOpen">Ver lista</button></div></div>'+
+    '<button type="button" class="chip" data-a="superClose" aria-label="Cerrar recordatorio" style="flex:none">✕</button></div></div>';
+}
 /* Mensajes diarios: 90 mensajes en orden (valorarte, agradecer, confiar). Uno por cada día distinto que abres la app. */
 var MOTIV=["Aquí empiezan tus 90 mensajes, uno por cada día que abras la app. El primero: tú importas, y no por lo que logres.", "Antes de cambiar nada, vale decirlo: ya eres alguien que merece cuidado.", "Cuidarte no es egoísmo. Es la base para poder cuidar todo lo demás.", "Hablarte con respeto también es parte del entrenamiento. Hoy, cuida cómo te hablas.", "No tienes que ganarte el derecho a cuidarte. Ya lo tienes.", "Tu valor no sube ni baja con el número de la báscula.", "Lo que sientes importa. Un día difícil no te hace menos.", "Hoy trátate como tratarías a alguien a quien quieres.", "Seguir un plan es una forma de decirte: me tomo en serio.", "Eres más que tu rutina, tu trabajo y tus resultados. Hoy, recuérdalo.", "Lo que has superado hasta aquí también cuenta como entrenamiento.", "Tu tiempo vale. Hoy una parte es para ti.", "Decir \"esto es importante para mí\" ya es un gran paso.", "No compares tu capítulo uno con el capítulo veinte de otra persona.", "Mereces sentirte bien en tu cuerpo, a tu ritmo.", "Tus límites también son parte de quien eres. Respétalos sin culpa.", "Cada vez que cumples contigo, tu confianza en ti crece un poco.", "Descansar también es cuidarte. No hace falta ganarlo.", "Hoy no necesitas demostrarle nada a nadie. Solo cumplir contigo.", "Cuando te equivocas sigues valiendo lo mismo. Corrige y sigue.", "Tu historia tiene partes difíciles. No las borres: te trajeron hasta aquí.", "Reconocer lo que haces bien no es presumir. Es ser justo contigo.", "Hoy, piensa en algo que te gusta de ti. Con eso basta.", "No eres un proyecto por arreglar. Eres alguien en crecimiento.", "Tu cuerpo ha estado contigo en todo. Hoy empiezas a devolverle el favor.", "Quien se valora elige mejor: lo que come, cómo descansa, con quién se rodea.", "Pon tu bienestar en la agenda como pondrías algo importante. Porque lo es.", "Se pueden tener metas altas y quererse tal como se es hoy. Van juntas.", "Ya cumples contigo más seguido de lo que crees. Se nota.", "Van 30 de 90, un tercio del camino. Ya hablamos de valorarte; ahora toca algo que aligera todo: agradecer.", "Empecemos por lo más cercano: tu cuerpo. Hoy, agradécele que te lleva y te aguanta.", "Tu corazón trabaja todo el día sin pedir nada. Hoy, un gracias silencioso.", "Agradece que hoy puedes moverte, aunque sea poquito. No siempre es así para todos.", "Agua, comida y un lugar donde dormir. Parece poco y es mucho.", "Piensa en alguien que te ha apoyado en este camino. Dale las gracias, aunque sea en silencio.", "La gratitud no niega lo difícil. Solo ilumina lo que sí está.", "Agradece el esfuerzo de ayer: hizo posible el de hoy.", "Busca tres cosas pequeñas que salieron bien hoy. Siempre hay.", "Agradecer el proceso hace que pese menos.", "Gracias, cuerpo, por cada repetición. Dile eso un día de estos.", "Cada mañana es otra oportunidad de elegir de nuevo.", "Agradece las ganas de mejorar. No todos las tienen encendidas.", "Cuando algo te cueste, agradece lo que te está enseñando.", "Da las gracias a alguien en voz alta hoy. A ti también te va a hacer bien.", "Mitad del camino: 45 de 90. Antes de seguir, mira atrás y agradece lo recorrido.", "Cada día que abres esta app es un día que decidiste cuidarte. Gracias a ti por aparecer.", "Agradece el cansancio bueno, el que llega después de dar lo mejor.", "Hay comida en tu mesa y opciones para elegir. Hoy elige con gratitud, no con culpa.", "Agradece a quien te hace reír. La buena compañía también alimenta.", "Mira cuánta paciencia has desarrollado sin darte cuenta.", "Tus errores de antes te enseñaron lo que hoy ya sabes hacer. Gracias a ellos también.", "Hoy el éxito es sencillo: estar presente. Y ya lo estás.", "Un buen rato de silencio o una buena tarde con alguien. Son tuyos. Agradécelos.", "Dale las gracias a tu constancia. Ha trabajado más de lo que se ve.", "Lo que hoy te parece normal hace unas semanas era una meta. Agradécelo.", "Gratitud no es conformarse. Es partir de lo que ya tienes para llegar a más.", "Agradece algo que cuesta poco y vale mucho: un abrazo, un buen café, un día sin prisa.", "Mira tus manos, tus piernas, tu respiración. Todo eso se está fortaleciendo contigo.", "Gracias por no rendirte las veces que quisiste. Eso también se entrena.", "Van 60 de 90, dos tercios. Ya te valoras y agradeces; ahora toca creer en lo que puedes lograr.", "La confianza no es no tener dudas. Es avanzar a pesar de ellas.", "Ya lograste cosas difíciles antes. Tienes el historial para probarlo.", "Cada sesión terminada es una prueba de que sí puedes.", "Lo que hoy parece grande se vuelve normal cuando lo repites.", "No necesitas ver toda la escalera. Solo el siguiente peldaño.", "Confía en el proceso aunque la báscula tarde en notarlo. El cuerpo avanza en silencio.", "Si dudaste de ti al empezar, mira dónde estás hoy y vuelve a decidir.", "Tus metas no son demasiado grandes. Piden más días, no más talento.", "La persona que quieres ser se parece cada vez más a la que hoy cumple su plan.", "Un tropiezo no borra el avance. Es parte de cómo se avanza.", "Ya sabes más de ti y de tu cuerpo que hace unos meses. Confía en tu criterio.", "Tu fuerza no está solo en los músculos. Está en volver a empezar cuando cuesta.", "Cree en ti aunque sea diez minutos hoy. Verás lo que hace con tu día.", "Ya no entrenas solo por una meta. Entrenas para ser alguien que cumple lo que se propone.", "Quedan 15 mensajes. No para terminar algo, sino para confirmar quién eres.", "Piensa en quien abrió esta app el primer día y en quien la abre hoy. Hay diferencia.", "No dependas de la motivación. Ya tienes algo mejor: un hábito.", "Lo que lograste hasta hoy prueba que lo que viene también es posible.", "Cree en lo que ya demostraste, no solo en lo que esperas.", "Quedan 10. Imagina cómo te vas a sentir al leer el último.", "Tu meta ya no se ve tan lejos. Está más cerca porque tú la acercaste.", "Con calma. Lo difícil ya lo hiciste: empezar y quedarte.", "Lo que sigue después del 90 no es un final. Es otro nivel que ya sabes cómo alcanzar.", "Hoy confía un poco más. Tu constancia habla por ti.", "Quedan 5. Todos los que has leído hasta aquí te trajeron a este punto.", "Eres alguien que cumple. Eso no te lo quita nadie.", "Valorarte, agradecer, confiar: ya sabes cómo se hace. Solo quedan unos pasos.", "Quedan dos mensajes. Pase lo que pase con la báscula, lo que construiste ya es tuyo.", "Mañana llega el último mensaje. Hoy solo cumple un día más.", "Llegaste. Mírate: ahí está la persona que valía la pena desde el primer día. Y esto apenas empieza."];
 function motivCheck(){
   try{
     if(!S.profile || !S.accessOk) return;
     var t=todayIso();
-    if(S.motivDay2!==t){ S.motivDay2=t; S.motivN=(S.motivN||0)+1; ui.motivN=S.motivN; persist(); }
+    if(S.motivDay2!==t){ S.motivDay2=t; S.motivN=(S.motivN||0)+1; persist(); }
+    ui.motivN = (S.motivClosed!==t) ? S.motivN : 0;               // el mensaje del día se queda visible (aunque la app se recargue) hasta que lo cierras
   }catch(e){}
 }
 /* Nombre capturado al inicio, con la primera letra en mayúscula. Se antepone al mensaje: "Juanito, hoy no tiene que ser perfecto..." */
@@ -2658,7 +2829,7 @@ function syncTimer(){
   var on=inMain && (ui.tab==='rutina' || tmEnd || tmDone);   // en reposo solo en Rutina; si corre o terminó, se ve en cualquier pestaña
   if(on) tmDraw(); else tmEl.className='agtimer';
 }
-function motivResume(){ try{ tmTick(); }catch(e){} var before=ui.motivN; motivCheck(); if(ui.motivN!==before && !ui.howto && !ui.welcome && !ui.shop && !ui.photos && !ui.commit) render(); }
+function motivResume(){ try{ tmTick(); }catch(e){} var before=ui.motivN, sb=ui.superDue; motivCheck(); try{ ui.superDue=!!superDueKey(); }catch(e){} if((ui.motivN!==before || ui.superDue!==sb) && !ui.howto && !ui.welcome && !ui.shop && !ui.photos && !ui.commit) render(); }
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) motivResume(); });
 window.addEventListener('pageshow',motivResume);
 window.addEventListener('focus',motivResume);
