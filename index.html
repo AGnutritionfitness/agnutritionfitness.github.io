@@ -23,7 +23,7 @@ window.__agErr=function(m){try{var a=document.getElementById('app')||document.bo
 window.addEventListener('error',function(e){window.__agErr((e&&e.message)||'error');});
 window.addEventListener('unhandledrejection',function(e){});
 /* Actualización automática: compara la versión de esta página con version.txt y, si cambió, recarga una sola vez. */
-window.AG_VERSION='2026-10-11e';
+window.AG_VERSION='2026-10-11f';
 try{
   fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){
     t=(t||'').trim(); if(!t || t===window.AG_VERSION) return;
@@ -1116,6 +1116,7 @@ function validateStep(){
     if(!(hh>=120&&hh<=220)) return 'Escribe tu estatura en centímetros, entre 120 y 220.';
     if(!(w>=35&&w<=250)) return 'Escribe tu peso actual en kilos, entre 35 y 250.';
     var wd=String(draft.wa||'').replace(/\D/g,''); if(wd && wd.length!==10) return 'Escribe tu WhatsApp a 10 dígitos, o déjalo vacío.';
+    if(wd && wd===contactDigits()) return 'Ese es el número de '+CONTACT_NAME+'. Escribe el tuyo, o déjalo vacío.';
     if(!draft.ok) return 'Marca la casilla para continuar.';
   }
   if(step===2 && draft.priority==='bajar'){
@@ -1926,7 +1927,20 @@ function welcomeBlocks(){
   B.push({t:'li',lead:'Los peldaños.',text:(!gen && p.priority==='mantener'?'Cada 8 sesiones completas subes un peldaño.':'Cada kilo que baja es un peldaño, y cada peldaño trae nombre y celebración.')});
   B.push({t:'li',lead:'Kilos o libras.',text:'En cada ejercicio con pesas anotas tu peso en kg o en libras. Toca el texto KG ⇄ arriba del campo Peso para cambiar de unidad.'});
   B.push({t:'li',lead:'Guardar tu día.',text:'Al terminar el día toca Guardar mi día en la pestaña Hoy. Una vez por semana guarda también una copia en archivo, por si cambias de celular.'});
+  B.push({t:'li',lead:'Tu compromiso.',text:'Al empezar firmas con el dedo tu compromiso de 90 días, con fecha de inicio y de fin. En Hoy ves la cuenta regresiva para tu nuevo yo.'});
+  B.push({t:'li',lead:'Tu mensaje del día.',text:'Cada día que abres la app te espera un mensaje nuevo: son 90, en tres etapas (valorarte, agradecer y confiar). Se queda en Hoy hasta que lo cierras.'});
+  B.push({t:'li',lead:'Días sin capturar.',text:'Si se te pasó registrar ayer, antier o hace 3 días, la app te avisa en Hoy y los completas con un toque.'});
   B.push({t:'li',lead:'El semáforo.',text:'El botón "Hoy va" en la barra de abajo cambia de color según tu día: rojo si apenas empiezas, amarillo a medias, verde cuando completaste sesión, agua, sueño y menú. Tócalo para ver el detalle y contarnos cómo te sientes.'});
+
+  B.push({t:'h2',text:'En tu entrenamiento'});
+  B.push({t:'li',lead:'Temporizador de descanso.',text:'En Rutina, el botón amarillo ⏱ 3:00 mide tu descanso entre series. Suena y vibra al terminar.'});
+  B.push({t:'li',lead:'Cargas semana a semana.',text:'En cada ejercicio anotas peso, series, repeticiones y cómo se sintió (Fácil, Justo o Muy pesado). Ves tu historial por fecha, y en Avance la app te dice qué ejercicios conviene subir de carga y cuáles afinar de técnica.'});
+  B.push({t:'li',lead:'Dudas de cargas o técnica.',text:'Toca Consultar en el ejercicio: el mensaje a tu nutriólogo sale por WhatsApp con tu ejercicio y tu último registro.'});
+  B.push({t:'li',lead:'Música para entrenar.',text:'En Rutina tienes 10 playlists de Spotify listas para ponerle ritmo a tu sesión.'});
+
+  B.push({t:'h2',text:'En tu cocina'});
+  B.push({t:'li',lead:'Lista de súper.',text:'En Dieta toca Mi lista de súper: sale por pasillo, con cantidades para comprar en crudo ya calculadas para tus porciones de la semana. La palomeas mientras compras, te la mandas a tu WhatsApp o la guardas en PDF.'});
+  B.push({t:'li',lead:'Sábado de súper.',text:'Cada sábado desde las 8 am, al abrir la app, tu lista de la siguiente semana te espera en Hoy, lista para mandarla con un toque.'});
 
   B.push({t:'h2',text:'Tus 3 meses'});
   B.push({t:'p',text:'Cada 4 semanas la rutina sigue una ola: adaptación, progresión, volumen y recuperación. Cada mes tiene su enfoque:'});
@@ -1956,9 +1970,14 @@ function welcomeBlocks(){
   B.push({t:'li',lead:'Si fallas un día,',text:'regresas al siguiente en el mismo punto del ciclo. Sin doble sesión, sin ayuno, sin castigo.'});
   B.push({t:'li',lead:'Si se te fue una semana o un mes,',text:'no pasa nada: volver no es empezar de cero. Abre la app, pésate y marca tu siguiente sesión.'});
 
-  B.push({t:'h2',text:'Fotos y medidas: tu día 1'});
-  B.push({t:'p',text:'Antes de empezar, tómate tres fotos (de frente, de lado y de espalda) con la misma luz y la misma ropa, y mide tu cuerpo. Repite en las semanas 4, 8 y 12. La báscula miente algunos días; la foto y el cinturón casi nunca.'});
+  B.push({t:'h2',text:'Fotos y medidas'});
+  B.push({t:'p',text:'Cada semana tómate tres fotos en Avance, en Mis fotos de progreso: de frente, de perfil y de tu cara, con la misma luz y la misma ropa. Se guardan solo en tu teléfono. Al cerrar el programa subes la foto 13, Mi nuevo yo, y la ves junto a la de tu semana 1. Mide tu cuerpo el día 1 y en las semanas 4, 8 y 12. La báscula miente algunos días; la foto y el cinturón casi nunca.'});
   B.push({t:'grid',head:['Medida','Día 1','Semana 4','Semana 8','Semana 12'],rows:[['Cintura (ombligo)','','','',''],['Pecho','','','',''],['Brazo','','','',''],['Muslo','','','','']],w:[46,34,34,34,38],printOnly:true});
+
+  B.push({t:'h2',text:'Tu plan y la Tienda'});
+  B.push({t:'li',lead:'Mi plan.',text:'En la Tienda ves en qué día de tus 90 vas, tu compromiso firmado y los datos de pago.'});
+  B.push({t:'li',lead:'Renovación.',text:'En los últimos días de cada mes te avisamos en Hoy para renovar por WhatsApp, sin pausar tu avance.'});
+  B.push({t:'li',lead:'Próximamente.',text:'Asesoría 1 a 1, proteínas y suplementos, accesorios y ropa deportiva. Toca la que te interese y te avisamos cuando esté lista.'});
 
   B.push({t:'h2',text:'El siguiente nivel'});
   B.push({t:'p',text:'Al cerrar tus 3 meses ya sabes cuidarte: tienes la base. Si quieres ir más lejos, el siguiente paso es el plan de seguimiento personalizado: un plan hecho para ti, con lo que aprendimos de tu proceso.'+' Dudas o seguimiento: '+contactLine()+'.'});
@@ -2021,8 +2040,8 @@ function renderHowTo(){
     standalone ? ['Ya la tienes como app. Ábrela siempre desde su ícono.']
       : ['Si abriste el link desde WhatsApp, primero ábrelo en Safari: toca los tres puntos o el ícono de brújula de la esquina y elige "Abrir en Safari". Si no, el ícono no se guarda bien.','iPhone, ya en Safari: toca Compartir (el cuadro con la flecha hacia arriba, abajo en la pantalla). Si no lo ves, toca los tres puntos de la barra.','Baja en el menú, elige "Agregar a pantalla de inicio" y toca Agregar. Verás el ícono AG FITNESS.','Android: en Chrome toca los tres puntos y "Instalar app" o "Agregar a pantalla principal".'],
     'Desde hoy ábrela siempre desde ese ícono: así tu información se conserva mejor.',null,null);
-  h+=stepBlock(2,'Contesta tu cuestionario',null,['Son 5 pantallas cortas: tus datos, tu meta, dónde entrenas y qué comes.','Con eso la app arma tu rutina, tu menú y tu curva de peso.'],null,null,null);
-  h+=stepBlock(3,'Úsala cada día',null,['En Hoy marca agua, sueño y comida.','En Rutina sigue los pasos en orden y anota tu peso y repeticiones.','En Rutina verás un botón amarillo con ⏱ 3:00: tócalo para empezar tu descanso entre series. Suena y vibra cuando se acaba.','Tu peso en cada ejercicio lo puedes anotar en kg o en libras: toca el texto "KG ⇄" arriba del campo Peso para cambiar a LB, y viceversa.','El botón "Hoy va" de la barra de abajo cambia de color según tu día: rojo, amarillo o verde.'],null,null,null);
+  h+=stepBlock(2,'Contesta tu cuestionario',null,['Son pantallas cortas: tus datos, tu meta, dónde entrenas, qué comes y tu compromiso de 90 días, que firmas con el dedo.','Con eso la app arma tu rutina, tu menú y tu curva de peso.'],null,null,null);
+  h+=stepBlock(3,'Úsala cada día',null,['En Hoy marca agua, sueño y comida.','En Rutina sigue los pasos en orden y anota tu peso y repeticiones.','En Rutina verás un botón amarillo con ⏱ 3:00: tócalo para empezar tu descanso entre series. Suena y vibra cuando se acaba.','Tu peso en cada ejercicio lo puedes anotar en kg o en libras: toca el texto "KG ⇄" arriba del campo Peso para cambiar a LB, y viceversa.','El botón "Hoy va" de la barra de abajo cambia de color según tu día: rojo, amarillo o verde.','¿Dudas de peso o técnica? Toca "Consultar" en el ejercicio y le escribes a tu nutriólogo por WhatsApp.','En Dieta toca "Mi lista de súper" para ver lo que compras en la semana y mandártela a tu WhatsApp. Los sábados desde las 8 am te la recordamos en Hoy.'],null,null,null);
   h+=stepBlock(4,'Al terminar el día, toca Guardar mi día',null,['Está en la pestaña Hoy. Asegura todo lo que capturaste en tu celular.','Una vez por semana toca también "Guardar copia en archivo": es tu respaldo si cambias de celular o se borra el navegador.','Para recuperar: pestaña Avance, "Restaurar un respaldo".'],null,null,null);
   h+=stepBlock(5,'Activa tus recordatorios',null,['Te avisan 4 veces al día: agua y revisar tus pasos.','Toca el botón. Cuando se descargue el archivo, ábrelo y toca "Agregar todo" en tu calendario.'],null,null,
     DL?'<button class="btn alt block" data-a="dlics" style="margin-top:10px">Agregar recordatorios al calendario</button>':null);
@@ -2388,6 +2407,7 @@ var H = {
   superSaveWa:function(){
     var el=document.getElementById('superWaIn'), d=String(el?el.value:'').replace(/\D/g,'');
     if(d && d.length!==10){ toast('Escribe tu WhatsApp a 10 dígitos.'); return; }
+    if(d && d===contactDigits()){ toast('Ese es el número de '+CONTACT_NAME+'. Escribe el tuyo.'); return; }
     S.waSelf=d; persist(); toast(d?'WhatsApp guardado':'WhatsApp borrado'); render();
   },
   motivClose:function(){ S.motivClosed=todayIso(); persist(); ui.motivN=0; render(); },
@@ -2691,6 +2711,7 @@ function superText(wk){
 }
 function superWaLink(wk){
   var d=String(S.waSelf||'').replace(/\D/g,'');
+  if(d && d===contactDigits()) d='';                     // la lista es del cliente: nunca sale al WhatsApp de AG
   return 'https://wa.me/'+(d.length===10?COUNTRY+d:'')+'?text='+encodeURIComponent(superText(wk));
 }
 function superBlocks(wk){
