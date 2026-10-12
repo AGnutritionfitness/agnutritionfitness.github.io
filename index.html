@@ -1292,7 +1292,7 @@ function viewHoy(){
   var lv = si.step>=1 ? levelOf(si.step) : null;
   var fn=firstName();
   if(fn) h+='<h2 class="disp" style="font-size:30px;margin:4px 0 10px">Hola, '+esc(fn)+' 👋</h2>';
-  h+=motivCard()+superCard()+missBanner()+sessBanner()+renewCard()+commitCard();
+  h+=motivCard()+superCard()+missBanner()+sessBanner()+renewCard()+commitCard()+regCard();
   h+='<div class="card"><div class="row sp" style="align-items:flex-end"><div>';
   if(si.step>=1) h+='<div class="big disp">Peldaño '+si.step+'</div><div class="lv disp">'+esc(lv[0])+'</div>';
   else h+='<div class="lv disp">Al pie de la escalera</div><div class="muted">'+(si.unit==='kg'?'Baja tu primer kilo para subir el primer peldaño.':'Completa 8 sesiones para subir el primer peldaño.')+'</div>';
@@ -2143,11 +2143,28 @@ function blocksToHtml(B){
   });
   closeList(); return h;
 }
+/* Registro del acceso: el cliente le manda a AG por WhatsApp su código y datos básicos (la app no tiene servidor, así que lo envía él mismo). */
+function regMsg(){
+  var p=S.profile||{}, PR={bajar:'bajar de peso',definir:'definir y ganar músculo',mantener:'mantenerme'};
+  var t='Hola '+CONTACT_NAME+', ya entré a la app con el código '+(S.accessCode||'AG___')+'. Por favor registra mi código.';
+  if(p.weight) t+=' Mis datos: peso '+p.weight+' kg'+(p.goal?', meta '+p.goal+' kg':'')+(PR[p.priority]?', quiero '+PR[p.priority]:'')+'.';
+  return t;
+}
+function regCard(){
+  if(!S.profile || S.regSent || !S.accessCode) return '';
+  var wl=waLink(regMsg()); if(!wl) return '';
+  return '<div class="callout" style="margin-bottom:14px"><b>Registra tu acceso con '+esc(CONTACT_NAME)+'.</b> Toca el botón y envía el mensaje por WhatsApp: llevará tu nombre, tu código, tu peso y tu meta, para que '+esc(CONTACT_NAME)+' registre tu código.'+
+    '<a class="btn block" data-reg="1" style="text-decoration:none;display:flex;align-items:center;justify-content:center;margin-top:10px" href="'+esc(wl)+'" target="_blank" rel="noopener">Registrar mi código por WhatsApp</a></div>';
+}
+document.addEventListener('click',function(e){
+  var a=e.target.closest&&e.target.closest('[data-reg]'); if(!a) return;
+  S.regSent=todayIso(); persist(); setTimeout(function(){ try{ render(); }catch(x){} },800);
+});
 function renderWelcome(){
   var B=welcomeBlocks(), t=B[0], h='', gen=!S.profile;
   var go = gen ? '<button class="btn" data-a="wStart" style="flex:1">Empezar mi programa</button>' : '<button class="btn" data-a="welcomeGo" style="flex:1">Ir a mi plan</button>';
   h+='<div class="top">'+markHtml()+'</div>';
-  h+='<h1 class="disp" style="font-size:54px;margin:4px 0 6px">'+esc(t.text)+'</h1><p class="muted" style="margin-bottom:14px">'+esc(t.sub)+'</p>';
+  h+='<h1 class="disp" style="font-size:54px;margin:4px 0 6px">'+esc(t.text)+'</h1><p class="muted" style="margin-bottom:14px">'+esc(t.sub)+'</p>'+regCard();
   h+='<div class="row" style="margin-bottom:6px">'+(DL?'<button class="btn alt" data-a="dlwelcome" style="flex:1">Guardar en PDF</button>':'')+go+'</div>';
   h+=blocksToHtml(B.slice(1));
   h+='<button class="btn block" data-a="'+(gen?'wStart':'welcomeGo')+'" style="margin:14px 0 6px">'+(gen?'Empezar mi programa':'Ir a mi plan')+'</button>';
@@ -2449,7 +2466,7 @@ function payBlock(){
 function planCard(){
   if(!S.profile) return '';
   var n=Math.max(1,planDayNum()), c=S.commit;
-  var h='<div class="card" style="border-left:3px solid var(--mustard)"><h3 style="margin:0 0 6px">Mi plan</h3>';
+  var h=regCard()+'<div class="card" style="border-left:3px solid var(--mustard)"><h3 style="margin:0 0 6px">Mi plan</h3>';
   h+= n<=COMMIT_DAYS ? '<p class="small muted">Día '+n+' de 90 · mes '+Math.ceil(n/30)+' de 3. Termina el '+esc(longDate(planEnd()))+'.</p>' : '<p class="small muted">Completaste tus 90 días. ¡Felicidades!</p>';
   if(c && c.sig) h+='<p class="small muted" style="margin:8px 0 4px">Compromiso firmado el '+esc(longDate(c.signedOn))+'</p><img src="'+c.sig+'" alt="Mi firma" style="height:56px;background:#1a1a1a;border-radius:8px;padding:4px">';
   h+=payBlock();
@@ -2557,7 +2574,7 @@ var H = {
   dlics:function(){ downloadReminders(); },
   checkAccess:function(){
     if(!validAccessCode(draft.accessCode)){ accessErr='Ese código no es válido. Ponte en contacto con el administrador para que te proporcione un código correcto posterior a tu pago.'; render(); return; }
-    accessErr=''; S.accessOk=true; ui.howto=true; persist(); render(); window.scrollTo(0,0);
+    accessErr=''; S.accessOk=true; S.accessCode=String(draft.accessCode||'').trim().toUpperCase(); ui.howto=true; persist(); render(); window.scrollTo(0,0);
   },
   start:function(){ step=1; formErr=''; render(); },
   next:function(){
